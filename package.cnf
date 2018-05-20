@@ -1,0 +1,21 @@
+#
+# openLilyLib/stylesheets configuration
+#
+
+name: stylesheets
+display-name: stylesheets
+short-description: Hierarchical stylesheets for GNU LilyPond
+description: <
+  stylesheets is an implementation of hierarchical stylesheets
+  for musical scores created with GNU LilyPond. It is loosely
+  modeled after the concept of CSS (Cascading Style Sheets).
+  >
+oll-core: 0.5.0
+maintainers: [
+  Urs Liska <ul@openlilylib.org>
+  Kieren MacMillan <kieren_macmillan@sympatico.ca>
+  ]
+version: 0.1.0
+license: GPL3
+website: https://github.com/openlilylib/stylesheets
+repository: https://github.com/openlilylib/stylesheets.git
