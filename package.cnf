@@ -10,6 +10,9 @@ description: <
   for musical scores created with GNU LilyPond. It is loosely
   modeled after the concept of CSS (Cascading Style Sheets).
   >
+modules: [
+  span
+]
 oll-core: 0.5.0
 maintainers: [
   Urs Liska <ul@openlilylib.org>
