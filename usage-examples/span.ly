@@ -69,12 +69,12 @@
 }
 
 #(define fancy-span-seq
-   (define-music-function (type item mus) (symbol? span-item? ly:music?)
+   (define-styling-function
      #{
        \temporary \override Slur.thickness = 3
        \temporary \override Slur.color = #magenta
        \temporary \override Beam.positions = #'(3 . 0)
-       #mus
+       #music
        \revert Slur.thickness
        \revert Slur.color
        \revert Beam.positions
@@ -94,11 +94,11 @@
 
 
 #(define highlight-item-span-seq
-   (define-music-function (type item mus) (symbol? span-item? ly:music?)
+   (define-styling-function
      #{
        \temporary \override #item #'color = #magenta
        \mark "|->"
-       #mus
+       #music
        \mark "<-|"
        \revert #item #'color
      #}

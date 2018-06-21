@@ -39,18 +39,12 @@
 
 \loadModule oll-core.util.color-music
 
-% Optional target grob type for the tweak
-% Either a symbol, a <context>.<grob> symbol-list or the boolean #f
-#(define (span-item? obj)
-   (or (symbol-list-or-symbol? obj)
-       (and (boolean? obj) (not obj))))
-
 % Define a new music property that will hold information about the span.
 % This is not directly used within the stylesheets.span module but can
 % be useful for others, for example in the scholarly.editorial-markup module.
-#(set-object-property! 'span-type 'music-type? symbol?)
-#(set-object-property! 'span-type 'music-doc
-   "Store the type of a span")
+#(set-object-property! 'span-props 'music-type? alist?)
+#(set-object-property! 'span-props 'music-doc
+   "Properties of a \\span expression")
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -60,12 +54,13 @@
 \registerOption stylesheets.span.use-styles ##t
 
 % Toggle the automatic coloring
-% When ##t (default) all span types without defined highlighting functions
-% will fallback to the "default" behaviour: coloring all grobs
-% with the type's defined span-color (or a general fallback color).
-\registerOption stylesheets.span.use-default-coloring ##t
+% When ##t all spans are colored with the span type's defined span-color
+% (or a general fallback color)
+% Typically this will option will be set to ##f for print production
+% while `use-styles` will be kept ##t
+\registerOption stylesheets.span.use-colors ##t
 
-% List of colors for the different editorial commands
+% List of colors for the different span types
 % If for a given command no color is defined (which is initially the case)
 % the fallback 'default will be used instead.
 \registerOption stylesheets.span.span-colors
@@ -97,51 +92,82 @@ setSpanColor =
   score elements before or after the span (for example rehearsal marks
   or text spanners).
 
-  Styling functions come in pairs: one that is applied to a
-  sequential music expression, the other is applied as a tweak.
-  Styling functions expect three arguments:
-  - type (symbol?)
-    the span type, to look up values like colors etc.
-  - item (span-item?)
-    Optional "target". If ##f then the tweak isn't targeted at a specific
-    grob type. Otherwise the grob type or context.grob-type list is read.
+  Styling functions come in pairs: one that is applied by *wrapping*
+  the music in code, the other by \tweak.
 
-  Within this module two pairs of basic styling functions are defined:
-  style-default[-seq|-tweak] and style-noop.
+  Styling functions are defined using the macro define-styling-function,
+  and three such functions are predefined: 
+  - style-default-wrap
+  - style-default-tweak
+  - style-noop
   The default functions will simply color all grobs with the type-
   specific color, while noop simply returns the unaltered music.
   These are used for default highlighting or *no* highlighting.
-
-  The function style-noop can be used anywhere a function is not
-  needed, e.g. as a tweak function when only sequential behaviour
-  is needed.
 %}
 
-#(define style-default-seq
-   (define-music-function (type item mus)
-     (symbol? span-item? ly:music?)
-     (if item
-         ;; colorMusic from oll-core.color-music
-         (colorMusic (list item) (getSpanColor type) mus)
-         (colorMusic (getSpanColor type) mus))))
+% define macro for simplified creation of styling functions
+% Usage:
+% (define-styling-function
+%   "docstring" (optional)
+%   list-of-expressions
+%   returning updated music expression)
+%
+% The macro defines a music function with a single ly:music? argument
+% This music expression is expected to include a 'span-props music property
+% with at least <span-type> and <item> keys available. Additionally the music
+% must have an <anchor> music property.
+% The macro makes the following bindings available within the function:
+% - music (the incoming music expression)
+% - anchor (an element in the list of music elements)
+% - item  (a grob name or Context.Grob symbol-list
+% - span-type (the type (class) of span
+%
+% The inner code must evaluate to the modified (styled) music
+#(define-macro (define-styling-function docstring . code)
+   ; all wrapping code is (semi)quoted
+   `(define-music-function
+     (music)(ly:music?)
+     ,(if (string? docstring) 
+          docstring
+          "define-my-custom-function was here")     
+     (let*
+      ((anchor (ly:music-property music 'anchor))
+       (span-props (ly:music-property music 'span-props))
+       (item (assq-ref span-props 'item))
+       (span-type (assq-ref span-props 'span-type)))
+      (if (or (not span-props) (not anchor))
+          (ly:input-warning "No input annotation" (*location*)))
+      ;; insert (unquoted) user generated code
+      ;; code must return the processed music expression
+      (let ((processed-music ,@(if (string? docstring) code (cons docstring code))))
+        ;; reattach the span-props for further use
+        (ly:music-set-property! processed-music 'span-props span-props)
+        (ly:music-set-property! processed-music 'anchor anchor)
+        processed-music))))
+
+
+#(define style-default-wrap
+   (define-styling-function
+    (if item
+        ;; colorMusic from oll-core.color-music
+        (colorMusic (list item) (getSpanColor span-type) music)
+        (colorMusic (getSpanColor span-type) music))))
 
 #(define style-default-tweak
-   (define-music-function (type item mus)
-     (symbol? span-item? ly:music?)
-     (let ((item (if (symbol? item) (list item) item))
-           (target (if item (list item 'color) 'color)))
-       #{ \tweak #target #(getSpanColor type) #mus #})))
+   (define-styling-function
+    (let ((target (if item (list item 'color) 'color)))
+      #{ \tweak #target #(getSpanColor span-type) #music #})))
 
 #(define style-noop
-   (define-music-function (type item mus)(symbol? span-item? ly:music?)
-     mus))
+   (define-styling-function
+    music))
 
 % List of highlighting function pairs.
 % The two predefined items should not be changed,
 % additional functions to support specific edit types
 % may be stored using \setEditFuncs below.
 \registerOption stylesheets.span.functions
-#`((default ,(cons style-default-seq style-default-tweak))
+#`((default ,(cons style-default-wrap style-default-tweak))
    (noop ,(cons style-noop style-noop)))
 
 
@@ -152,47 +178,44 @@ setSpanColor =
 getSpanFuncs =
 #(define-scheme-function (type)(symbol?)
    (let ((functions (getOption '(stylesheets span functions))))
-     (car
-      (or (assq-ref functions type)
-          (assq-ref functions
-            (if (getOption '(stylesheets span use-default-coloring))
-                'default
-                'noop))))))
+     (car (or (assq-ref functions type)
+              (assq-ref functions 'noop)))))
 
 % Store a pair of highlighting functions for a given edit-type
-% Both functions must be music-functions expecting a <type> symbol
-% and a music expression. The <highlight-func> will be applied
+% Both functions must be music-functions created by define-styling-function.
+% The <wrap-func> will be applied
 % to sequential music expressions while <tweak-func> is applied
 % to single music elements like note-events or other \tweak-able items
 setSpanFuncs =
-#(define-void-function (type highlight-func tweak-func)(symbol? procedure? procedure?)
+#(define-void-function (type wrap-func tweak-func)(symbol? procedure? procedure?)
    (setChildOption '(stylesheets span functions) type
-     (list (cons highlight-func tweak-func))))
+     (list (cons wrap-func tweak-func))))
 
 
-% Create and return a basic alist describing a span. Can be used to build
-% an input-annotation for scholarly.annotate
+% Create and return a basic alist describing a span. 
+% Can be used to build an input-annotation for scholarly.annotate
 
 % with the attributes given
 % in the \with {} block (if any) plus some more calculated ones:
-% - is-sequential?
+% - is-postevent?
 %   to discern between edits/annotations that have to be treated with \tweak
 % - context-id
-%   Set up a reasonable default value if no better data can be inferred
-%   from the actual context in the engraver:
+%   Set up a reasonable default value if no better data can later
+%   be inferred from the actual context in the engraver:
 %   Initially 'context-id is a string composed from the input file and the
 %   directory containing it: <directory>.<file>
 % - span-type
 %   is simply stored in the annotation
 % - location
 %   is also stored in the annotation.
-#(define (make-span-description attrs span-type location mus)
+#(define (make-span-description span-type attrs location mus)
    (let*
     ;
     ; TODO: use type-checking provided for context-mod->props
     ;
     ((annot (if attrs (context-mod->props attrs) '()))
-     (is-sequential? (not (null? (ly:music-property mus 'elements))))
+     (is-postevent? (memq 'post-event (ly:music-property mus 'types)))
+     ;     (is-sequential? (not (null? (ly:music-property mus 'elements))))
      (_input-file (string-split (car (ly:input-file-line-char-column location)) #\/ ))
      ;; fallback context name is built from containing directory and filename
      (context-id
@@ -205,30 +228,55 @@ setSpanFuncs =
           (string-join (list-tail _input-file (- (length _input-file) 2)) "."))))
     ;; add several manual properties to the given <attrs>
     (append annot
-      `((is-sequential? . ,is-sequential?)
-        (span-type . ,span-type)
-        (location . ,location)
-        (context-id . ,context-id)))))
+      `(;(is-sequential? . ,is-sequential?)
+         (is-postevent? . ,is-postevent?)
+         (span-type . ,span-type)
+         (location . ,location)
+         (context-id . ,context-id)))))
 
 
 % Retrieve the styling information corresponding to the span type
 % and apply them to the music expression.
-% Distinguishes between sequential and atomic music expressions
+% Distinguishes between wrappable and tweakable music expressions
 % and calls the appropriate span function.
 #(define format-span
-   (define-music-function (mus annot)(ly:music? alist?)
-     (if (getOption '(stylesheets span use-styles))
-         (let*
-          ((item
-            (let ((i (assoc-ref annot 'item)))
-              (if (and i (string? i)) (string->symbol i) i)))
-           (span-type (assoc-ref annot 'span-type))
-           (edit-func (if (assq-ref annot 'is-sequential?)
-                          (car (getSpanFuncs span-type))
-                          (cdr (getSpanFuncs span-type)))))
-          (ly:music-set-property! mus 'type span-type)
-          (edit-func span-type item mus))
-         mus)))
+   (define-music-function (annot mus)(alist? ly:music?)
+     ;; attach properties to music expression
+     (ly:music-set-property! mus 'span-props annot)
+     (let ((anchor (ly:music-property mus 'anchor)))
+       (if (getOption '(stylesheets span use-styles))
+           (let*
+            ((span-type (assoc-ref annot 'span-type))
+             (is-postevent? (assq-ref annot 'is-postevent?))
+             (item (let
+                    ((i (assoc-ref annot 'item)))
+                    ;; ensure <item> is a symbol, a symbol list or #f
+                    (cond
+                     ((string? i) (string->symbol i))
+                     ((symbol-list? i) i)
+                     ((and (list? i) (every string? i))
+                      (map (lambda (s)
+                             (symbol->string s)) i))
+                     (else #f))))
+             ;; Retrieve appropriate styling function
+             (edit-func (if is-postevent?
+                            (cdr (getSpanFuncs span-type))
+                            (car (getSpanFuncs span-type)))))
+            ;; Update 'item field with proper type
+            (assq-set! annot 'item
+              (if (and is-postevent? (list? item)) (last item) item))
+            ;; Apply the styling function
+            (set! mus (edit-func mus))
+            (if (getOption '(stylesheets span use-colors))
+                ;; Apply coloring
+                (let
+                 ((color-func (if is-postevent?
+                                  (cdr (getSpanFuncs 'default))
+                                  (car (getSpanFuncs 'default)))))
+                 (set! mus (color-func mus))))
+            (ly:music-set-property! mus 'anchor anchor)
+            mus)
+           mus))))
 
 
 % Encode a \span like a <span class=""> in HTML.
@@ -238,10 +286,13 @@ setSpanFuncs =
 % either temporarily during the editing process or as a persistent styling.
 % Arguments:
 % - span-type (symbol?)
-%   specify the type of case, has
+%   specify the type of case.
+%   This may be arbitrary names but highlighting support has to be provided
+%   by the user.
 % - attrs (optional)
 %   \with {} block with further specification of the case.
-%   Currently only 'item is supported, used for specifying a target grob-type
+%   Currently only <item> is supported, used for specifying a target grob-type
+%   (
 % - mus (mandatory)
 %   the music to be annotated
 %
@@ -250,5 +301,5 @@ span =
 #(define-music-function (span-type attrs mus)
    (symbol? (ly:context-mod?) ly:music?)
    (let*
-    ((annot (make-span-description attrs span-type (*location*) mus)))
-    (format-span mus annot)))
+    ((annot (make-span-description span-type attrs (*location*) mus)))
+    (format-span annot mus)))
