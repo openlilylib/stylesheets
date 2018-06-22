@@ -96,7 +96,7 @@ setSpanColor =
   the music in code, the other by \tweak.
 
   Styling functions are defined using the macro define-styling-function,
-  and three such functions are predefined: 
+  and three such functions are predefined:
   - style-default-wrap
   - style-default-tweak
   - style-noop
@@ -114,7 +114,7 @@ setSpanColor =
 %
 % The macro defines a music function with a single ly:music? argument
 % This music expression is expected to include a 'span-props music property
-% with at least <span-type> and <item> keys available. Additionally the music
+% with at least <span-class> and <item> keys available. Additionally the music
 % must have an <anchor> music property.
 % The macro makes the following bindings available within the function:
 % - music (the incoming music expression)
@@ -127,9 +127,9 @@ setSpanColor =
    ; all wrapping code is (semi)quoted
    `(define-music-function
      (music)(ly:music?)
-     ,(if (string? docstring) 
+     ,(if (string? docstring)
           docstring
-          "define-my-custom-function was here")     
+          "define-my-custom-function was here")
      (let*
       ((anchor (ly:music-property music 'anchor))
        (span-props (ly:music-property music 'span-props))
@@ -192,7 +192,7 @@ setSpanFuncs =
      (list (cons wrap-func tweak-func))))
 
 
-% Create and return a basic alist describing a span. 
+% Create and return a basic alist describing a span.
 % Can be used to build an input-annotation for scholarly.annotate
 
 % with the attributes given
