@@ -4,3 +4,7 @@
 *.mid
 *.log
 *~
+usage-examples/tmp-ly/*
+*.aux
+*.idx
+*.out
