@@ -98,24 +98,35 @@ setSpanColor =
   (e.g. marks, spanners, etc.) instead of only *style* the existing items.
 %}
 
-% define macro for simplified creation of styling functions
-% Usage:
-% (define-styling-function
-%   "docstring" (optional)
-%   list-of-expressions
-%   returning updated music expression)
-%
-% The macro defines a music function with a single ly:music? argument
-% This music expression is expected to include a 'span-annotation music property
-% with at least <span-class> and <item> keys available. Additionally the music
-% must have an <anchor> music property.
-% The macro makes the following bindings available within the function:
-% - music (the incoming music expression)
-% - anchor (an element in the list of music elements)
-% - item  (a grob name or Context.Grob symbol-list
-% - span-class (the type (class) of span
-%
-% The inner code must evaluate to the modified (styled) music
+% Helper to simplify the implementation of 'wrap functions
+% wrap-span takes a list of override definitions as pairs:
+% - symbol-list-or-symbol? to specify the target grob and property
+% - any Scheme value for the property value
+
+#(define (overrides-list? obj)
+   (and (list? obj)
+        (every
+         (lambda (elt)
+           (and (pair? elt)
+                (symbol-list-or-symbol? (car elt))))
+         obj)))
+
+% Apply all rules from props as a \temporary \override
+% before issuing the music and \revert-ing the overrides.
+#(define wrap-span
+   (define-music-function (props music)(overrides-list? ly:music?)
+     (make-sequential-music
+      (append
+       (map
+        (lambda (o)
+          (temporary (overrideProperty (car o) (cdr o))))
+        props)
+       (list music)
+       (map
+        (lambda (o)
+          #{ \revert #(car o) #})
+        props)))))
+
 
 
 % Create a styling function for a span
@@ -183,7 +194,7 @@ for \\once \\override: ~a" types))
        (location (assq-ref span-annotation 'location))
        ;; Process the 'item property to be compatible,
        ;; the different style-types require different ways
-       ;; the 
+       ;; the
        (item
         (let ((orig-item (assq-ref span-annotation 'item)))
           (case style-type
@@ -313,9 +324,9 @@ setSpanFunc =
           (string-join (list (last (os-path-cwd-list)) (last _input-file)) ".")
           ;; absolute or longer relative path, take last two elements
           (string-join (list-tail _input-file (- (length _input-file) 2)) "."))))
-    ;(if item 
-        (assq-set! annot 'item item)
-        ;)
+    ;(if item
+    (assq-set! annot 'item item)
+    ;)
     ;; add several manual properties to the given <attrs>
     (ly:music-set-property! anchor 'span-annotation
       (append annot

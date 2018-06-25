@@ -70,15 +70,11 @@
 
 #(define fancy-span
    (define-styling-function
-     #{
-       \temporary \override Slur.thickness = 3
-       \temporary \override Slur.color = #magenta
-       \temporary \override Beam.positions = #'(3 . 0)
-       #music
-       \revert Slur.thickness
-       \revert Slur.color
-       \revert Beam.positions
-     #}
+     (wrap-span
+      `(((Slur thickness) . 3)
+        ((Slur color) . ,magenta)
+        ((Beam positions) . (3 . 0)))
+     music)
       ))
 
 \markup \justify {
