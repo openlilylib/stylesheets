@@ -68,7 +68,7 @@
   c' d \span red-span { e f }
 }
 
-#(define fancy-span-seq
+#(define fancy-span
    (define-styling-function
      #{
        \temporary \override Slur.thickness = 3
@@ -87,13 +87,13 @@
   with \typewriter "\\setSpanFuncs".
 }
 
-\setSpanFuncs fancy-span #fancy-span-seq #style-noop
+\setSpanFunc fancy-span #fancy-span
 \relative {
   c' d \span fancy-span { e8 -. [ ( f ) e f ] } g8 ( f e d )
 }
 
 
-#(define highlight-item-span-seq
+#(define highlight-item-span
    (define-styling-function
      #{
        \temporary \override #item #'color = #magenta
@@ -112,7 +112,7 @@
   DynamicText. Note that the functions must implement all the business logic to
   handle different grob types on their own.
 }
-\setSpanFuncs highlight-item-span #highlight-item-span-seq #style-noop
+\setSpanFunc highlight-item-span #highlight-item-span
 \relative {
   c'4 d \span highlight-item-span \with {
     item = Staff.Clef
