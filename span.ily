@@ -168,16 +168,37 @@ setSpanColor =
 % Infer the Context.Grob list to be overridden for non-rhythmic events,
 % based on the music type.
 #(define (infer-item location music)
-   (let ((types (ly:music-property music 'types)))
-     (cond
-      ((memq 'key-change-event types) '(Staff KeySignature))
-      ((memq 'music-wrapper-music types) '(Staff Clef))
-      ((memq 'time-signature-music types) '(Staff TimeSignature))
-      ((memq 'mark-event types) '(Score RehearsalMark))
-      ((memq 'tempo-change-event types) '(Score MetronomeMark))
-      (else (ly:input-warning location "Music type not supported
-for \\once \\override: ~a" types))
-      )))
+   (let*
+    ((parse-context-spec
+      ;; Determine the type of a context-specification music
+      (lambda ()
+        (cond
+         ;; Check for \clef
+         ((let
+           ((elements
+             (ly:music-property (ly:music-property music 'element) 'elements)))
+           (eq? 'clefGlyph (ly:music-property (first elements) 'symbol)))
+          '(Staff Clef))
+         (else #f))))
+     (types (ly:music-property music 'types))
+     (property-path
+      (any
+       (lambda (type)
+         (if (memq (car type) types)
+             (let ((result (cdr type)))
+               (if (procedure? result) (result) result))
+             #f))
+       `((context-specification . ,parse-context-spec)
+         (key-change-event . (Staff KeySignature))
+         (mark-event . (Score RehearsalMark))
+         (ottava-music . (Staff OttavaBracket))
+         (tempo-change-event . (Score MetronomeMark))
+         (time-signature-music . (Staff TimeSignature)))
+       )))
+    (or property-path
+        (ly:input-warning location "Music type not supported
+for \\once \\override: ~a" types))))
+
 
 #(define-macro (define-styling-function docstring . code)
    ; all wrapping code is (semi)quoted
