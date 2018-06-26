@@ -233,13 +233,15 @@ Using only last element from that list."
              (colorMusic (list item) col music)
              (colorMusic col music)))
         ((tweak)
+         ;; if item is present it is a symbol
          (let ((target (if item (list item 'color) 'color)))
-           #{ \tweak #target #col #music #}))
+           (propertyTweak target col music)))
         ((once)
-         #{
-           \once \override #(append item '(color)) = #col
-           #music
-         #})))))
+         ;; item is guaranteed to be a symbol list
+         (make-sequential-music
+          (list
+           (once (overrideProperty (append item '(color)) col))
+           music)))))))
 
 % Passthrough function
 #(define style-noop
