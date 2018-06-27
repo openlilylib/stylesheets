@@ -5,6 +5,6 @@
   \tagSpan dubious \with {
     ann-type = critical-remark
     author = "Harry Potter"
-    message = "I'm a generated footnote"
+    message = "I'm a critical remark"
   } { c' d' e' f' }
 }
