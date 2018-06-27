@@ -10,6 +10,6 @@
      music)))
 \setSpanFunc fancy-span #fancy-span
 \relative {
-  c' d \span fancy-span { e8 -. [ ( f ) e f ] } g8 ( f e d )
-  \span fancy-span d [ ( e ] )
+  c' d \tagSpan fancy-span { e8 -. [ ( f ) e f ] } g8 ( f e d )
+  \tagSpan fancy-span d [ ( e ] )
 }

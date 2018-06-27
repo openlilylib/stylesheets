@@ -10,5 +10,5 @@
     #}))
 \setSpanFunc ottava #ottava-span
 \relative {
-  c'' e \span ottava { g g } | c,1
+  c'' e \tagSpan ottava { g g } | c,1
 }

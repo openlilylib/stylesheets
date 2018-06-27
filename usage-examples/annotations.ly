@@ -2,7 +2,7 @@
 \loadModule stylesheets.span
 \loadModule scholarly.annotate
 {
-  \span dubious \with {
+  \tagSpan dubious \with {
     ann-type = critical-remark
     author = "Harry Potter"
     message = "I'm a generated footnote"
