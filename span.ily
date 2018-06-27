@@ -46,6 +46,12 @@
 #(set-object-property! 'span-annotation 'music-doc
    "Properties of a \\span expression")
 
+% Music property to point to the first or single music element
+% within a music expression.
+#(set-object-property! 'anchor 'music-type? ly:music?)
+#(set-object-property! 'anchor 'music-doc
+   "Pointer to the music element the annotation is attached to")
+
 % Create custom property 'annotation
 % to pass information from the music function to the engraver
 #(set-object-property! 'input-annotation 'backend-type? alist?)
