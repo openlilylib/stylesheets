@@ -363,13 +363,13 @@ Using only last element from that list."
 %   the music to be annotated
 %
 
-span =
+tagSpan =
 #(define-music-function (span-class attrs music)
    (symbol? (ly:context-mod?) ly:music?)
    (let*
     ;; create annotation, determine anchor and attach the annotation to the anchor
     ((anchor (make-span-annotation span-class attrs (*location*) music))
-     (span-annotation (ly:music-property music 'span-annotation)))
+     (span-annotation (ly:music-property anchor 'span-annotation)))
     (make-footnote music anchor span-annotation)
     (make-balloon music anchor span-annotation)
     (if (getOption '(stylesheets span use-styles))
