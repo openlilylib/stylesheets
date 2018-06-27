@@ -46,6 +46,11 @@
 #(set-object-property! 'span-annotation 'music-doc
    "Properties of a \\span expression")
 
+% Create custom property 'annotation
+% to pass information from the music function to the engraver
+#(set-object-property! 'input-annotation 'backend-type? alist?)
+#(set-object-property! 'input-annotation 'backend-doc "custom grob property")
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Configuration and default behaviour
@@ -293,6 +298,43 @@ setSpanFunc =
    (setChildOption '(stylesheets span functions) type func))
 
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Functions to modify the music expression
+%
+% The following functions modify the music expression *in-place*,
+% effectively adding elements to it.
+
+
+% Create and attach a footnote if one is requested.
+% - Footnote is created when 'footnote-offset is set
+% - If 'footnote-text is set this is used as footnote text
+%   else the 'message is copied to the footnote.
+#(define make-footnote
+   (define-void-function (mus anchor annot) (ly:music? ly:music? list?)
+     (let ((offset (assq-ref annot 'footnote-offset)))
+       (if offset
+           (let*
+            ;; Determine footnote text
+            ((text (or (assq-ref annot 'footnote-text)
+                       (assq-ref annot 'message)))
+             (mark (assq-ref annot 'footnote-mark)))
+            (if mark
+                ;; specify footnote mark
+                (footnote mark offset (string-append mark " " text) anchor)
+                ;; use auto-incremented footnote number
+                (footnote offset text anchor)))))))
+
+% TODO: Adapt this to the new structure:
+#(define make-balloon
+   (define-void-function (mus anchor annot) (ly:music? ly:music? list?)
+     ))
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Functions to create the span and span annotation
+%
+
+
 % Create and return a basic alist describing a span.
 % Can be used to build an span-annotation for scholarly.annotate
 
@@ -315,6 +357,7 @@ setSpanFunc =
    (let*
     ;
     ; TODO: use type-checking provided for context-mod->props
+    ; (ensure some properties are set with default values (e.g. 'message')
     ;
     ((annot (if attrs (context-mod->props attrs) '()))
      (is-sequential? (not (null? (ly:music-property mus 'elements))))
@@ -390,9 +433,12 @@ setSpanFunc =
 span =
 #(define-music-function (span-class attrs music)
    (symbol? (ly:context-mod?) ly:music?)
-   (let
+   (let*
     ;; create annotation, determine anchor and attach the annotation to the anchor
-    ((anchor (make-span-annotation span-class attrs (*location*) music)))
+    ((anchor (make-span-annotation span-class attrs (*location*) music))
+     (span-annotation (ly:music-property music 'span-annotation)))
+    (make-footnote music anchor span-annotation)
+    (make-balloon music anchor span-annotation)
     (if (getOption '(stylesheets span use-styles))
         (begin
          ;; Apply the styling function
@@ -400,4 +446,6 @@ span =
          (if (getOption '(stylesheets span use-colors))
              ;; Apply coloring
              (set! music ((getSpanFunc 'default) music)))))
+    (if (assq-ref span-annotation 'ann-type)
+        (propertyTweak 'input-annotation span-annotation anchor))
     music))
