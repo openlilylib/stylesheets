@@ -58,39 +58,7 @@
 #(set-object-property! 'input-annotation 'backend-doc "custom grob property")
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Configuration and default behaviour
-
-% Toggle the application of editorial command styling in general
-\registerOption stylesheets.span.use-styles ##t
-
-% Toggle the automatic coloring
-% When ##t all spans are colored with the span type's defined span-color
-% (or a general fallback color)
-% Typically this will option will be set to ##f for print production
-% while `use-styles` will be kept ##t
-\registerOption stylesheets.span.use-colors ##t
-
-% List of colors for the different span types
-% If for a given command no color is defined (which is initially the case)
-% the fallback 'default will be used instead.
-\registerOption stylesheets.span.span-colors
-#`((default . ,darkmagenta))
-
-% Retrieve the highlighting color for the given span type.
-% If for the requested type no color is stored return the color for 'default
-getSpanColor =
-#(define-scheme-function (type)(symbol?)
-   (let ((colors (getOption '(stylesheets span span-colors))))
-     (or (assq-ref colors type)
-         (assq-ref colors 'default))))
-
-% Set the highlighting color for a given edit type
-setSpanColor =
-#(define-void-function (type col)(symbol? color?)
-   (setChildOption '(stylesheets span span-colors) type col))
-
-
+\include "config.ily"
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 % Styling functions
@@ -109,36 +77,7 @@ setSpanColor =
   (e.g. marks, spanners, etc.) instead of only *style* the existing items.
 %}
 
-% Helper to simplify the implementation of 'wrap functions
-% wrap-span takes a list of override definitions as pairs:
-% - symbol-list-or-symbol? to specify the target grob and property
-% - any Scheme value for the property value
-
-#(define (overrides-list? obj)
-   (and (list? obj)
-        (every
-         (lambda (elt)
-           (and (pair? elt)
-                (symbol-list-or-symbol? (car elt))))
-         obj)))
-
-% Apply all rules from props as a \temporary \override
-% before issuing the music and \revert-ing the overrides.
-#(define wrap-span
-   (define-music-function (props music)(overrides-list? ly:music?)
-     (make-sequential-music
-      (append
-       (map
-        (lambda (o)
-          (temporary (overrideProperty (car o) (cdr o))))
-        props)
-       (list music)
-       (map
-        (lambda (o)
-          #{ \revert #(car o) #})
-        props)))))
-
-
+\include "styling-helpers.ily"
 
 % Create a styling function for a span
 % The resulting music function must take exactly one argument
@@ -283,25 +222,13 @@ Using only last element from that list."
 % List of highlighting function pairs.
 % The two predefined items should not be changed,
 % additional functions to support specific edit types
-% may be stored using \setEditFuncs below.
+% may be stored using \setEditFuncs
+%
+% This should actually be registered in config.ily
+% but that has to wait until the functions have been defined
 \registerOption stylesheets.span.functions
 #`((default . ,style-default)
    (noop . ,style-noop))
-
-
-% Retrieve a styling function for the given span-class.
-% If none is registered for the span-class return the 'noop function.
-getSpanFunc =
-#(define-scheme-function (type)(symbol?)
-   (let ((functions (getOption '(stylesheets span functions))))
-     (or (assq-ref functions type)
-         (assq-ref functions 'noop))))
-
-% Store a styling function for a given span-class.
-% <func> must be a music-function, typically created through define-styling-function.
-setSpanFunc =
-#(define-void-function (type func)(symbol? procedure?)
-   (setChildOption '(stylesheets span functions) type func))
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
