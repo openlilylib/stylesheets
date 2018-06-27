@@ -147,7 +147,48 @@ attribute. However, \cmd{span} tries to determine the target automatically if no
 \lilypondfile{non-rhythmic-events.ly}
 
 Elements that can be directly targeted like this are \cmd{time}, \cmd{key},
-\cmd{clef}, \cmd{mark}, and \cmd{tempo}.
+\cmd{clef}, \cmd{mark}, \cmd{ottava} and \cmd{tempo}.
+
+
+## Creating Footnotes
+
+If is possible to automatically create footnotes and attach them to the span's
+anchor. This is achieved by simply adding an offset pair as the
+`footnote-offset` attribute. A `footnote-text` attribute will be used as the
+footnote text, and if it is missing the `message` attribute is used instead
+(which is guaranteed to be present, at least with a default value).
+`footnote-mark` will be used to print a custom footnote mark instead of the
+automatic counter.
+
+Footnotes are not properly printed in the context of this manual, therefore only
+the source is printed here. But the file `footnotes.ly` from the usage-examples
+directory may freely be compiled on its own.
+
+```{.lilypond include=footnotes.ly}
+```
+
+## Creating Balloon Text Annotations
+
+\ollIssue{Not implemented yet!}
+
+By providing a `balloon-offset` attribute it is possible to create a balloon
+text annotation.
+
+## Creating Scholarly Annotations
+
+Spans can implicitly trigger the generation of a \ollPackage{scholarly.annotate}
+annotation, simply by loading that module and providing an `ann-type` attribute
+with a valid annotation type value (`musical-issue`, `critical-remark`,
+`lilypond-issue`, `question`, or `todo`). In this case all attributes are
+forwarded to the annotation engraver, and the handling is identical to the
+regular \ollPackage{scholarly.annotate} behaviour.
+
+Annotations can (like footnotes) not be represented in this manual, so again
+only the source is printed, while the file `annotations.ly` can be compiled
+independently.
+
+```{.lilypond include=annotations.ly}
+```
 
 
 # Configuration
