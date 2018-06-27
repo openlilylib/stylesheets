@@ -9,7 +9,7 @@ toc: yes
 \lysetoption{includepaths}{/home/uliska/git/oll-lib}
 
 The openLilyLib package \ollPackage{stylesheets} includes the
-\ollPackage{stylesheets.span} module.  Its main feature is the \cmd{span}
+\ollPackage{stylesheets.span} module.  Its main feature is the \cmd{tagSpan}
 command which is loosely modeled after the `<span>` element from HTML. It “marks
 up” a given music expression with a class or type and provides an interface to
 apply styling functions, either as visual reminders during the editing process
@@ -30,7 +30,7 @@ can be loaded with
 \loadModule stylesheets.span
 ```
 
-The most basic use of \cmd{span} is marking up a music expression with an
+The most basic use of \cmd{tagSpan} is marking up a music expression with an
 arbitrary name:
 
 ```{.lilypond include=basic-sequential.ly}
@@ -46,11 +46,11 @@ In HTML. And just like in HTML/CSS this doesn't actually make the word look in a
 
 \lilypondfile{basic-sequential.ly}
 
-\cmd{span} first looks for a registered styling function for the class
+\cmd{tagSpan} first looks for a registered styling function for the class
 `blurred`.  Since we haven't specified one there is no visual modification of
-the music.  By default spans are colored, so \cmd{span} looks for a *color*
+the music.  By default spans are colored, so \cmd{tagSpan} looks for a *color*
 specified for the `blurred` class. And since we didn't specify one either a
-default color is used instead. So without any further precautions \cmd{span} can
+default color is used instead. So without any further precautions \cmd{tagSpan} can
 be used with an arbitrary class name and will still have that default coloring
 available.
 
@@ -85,7 +85,7 @@ and respond appropriately. Additionally attributes will be attached to resulting
 SVG objects, and they play an important role in other packages building on top
 of \ollPackage{stylesheets.span}.
 
-## Application of \cmd{span}
+## Application of \cmd{tagSpan}
 
 Spans can be applied to in different ways to address different situations,
 namely different types of music expressions.
@@ -121,7 +121,7 @@ that are *attached* to the note such as articulations, text or dynamics can
 \ollMargin{Post-events}
 
 To address articulations, dynamics and other so called *post-event* elements it
-is possible to apply \cmd{span} as a post-event too.
+is possible to apply \cmd{tagSpan} as a post-event too.
 
 ```{.lilypond include=basic-post-event.ly}
 ```
@@ -138,7 +138,7 @@ specifying any target item.
 Finally it is possible to mark up *non-rhythmic* events such as key or time
 signatures, rehearsal or metronome marks etc. Typically these are not in the
 `Voice` but in a higher context and therefore need a two-element `item`
-attribute. However, \cmd{span} tries to determine the target automatically if no
+attribute. However, \cmd{tagSpan} tries to determine the target automatically if no
 `item` attribute is provided, and a number of elements are already supported:
 
 ```{.lilypond include=non-rhythmic-events.ly}
@@ -210,14 +210,14 @@ visualization and deactivate the coloring for the final publication stage.
 ## Coloring
 
 As indicated above the application of colors is a two-stage process. First
-\cmd{span} looks for a color registered for the requested span class, and if
+\cmd{tagSpan} looks for a color registered for the requested span class, and if
 none is available the default fallback color is used instead. The default color
 is pre-set to `darkmagenta`, but this can be changed like with colors in
 general.
 
 Like with HTML span classes are essentially empty to start with, and styling
 information has to be supplied by users or libraries. But other packages that
-build upon \cmd{span}, such as \ollPackage{scholarly} provide a greater set of
+build upon \cmd{tagSpan}, such as \ollPackage{scholarly} provide a greater set of
 predefined styles.
 
 \ollLilyfuncdef{setSpanColor}{span-class color}{}
@@ -248,7 +248,7 @@ New styling functions should be created using the macro
 
 # Custom Styling Functions
 
-\cmd{span} applies styling functions, and we have seen that two such functions
+\cmd{tagSpan} applies styling functions, and we have seen that two such functions
 are predefined by the module. Of course the true power of spans is only used
 when custom styling functions actually apply some real styling. By its nature it
 is not trivial to create robust styling functions, but the package provides some
@@ -270,7 +270,7 @@ The music function created by the macro takes exactly one argument of type
 `span-music?`, which doesn't have to be declared explicitly. `span-music?` is a
 music expression that has an `'anchor` property, which in turn has a
 `'span-annotation` property. But this is something one doesn't have to worry
-about because it is handled automatically by \cmd{span}. Inside the function
+about because it is handled automatically by \cmd{tagSpan}. Inside the function
 this is bound to the name `music`.
 
 A number of properties from the music are extracted by the macro and available
@@ -297,7 +297,7 @@ through \option{assq-ref span-annotation '<attr-name>}.
 
 ## Basic Styling Function / Handling Style Types
 
-The music function is passed a music expression, but as we have seen \cmd{span}
+The music function is passed a music expression, but as we have seen \cmd{tagSpan}
 can be applied in various ways -- requiring different approaches to applying the
 styling. If you know the span is only going to be applied in one way (e.g.
 acting upon sequential music) you can ignore the difference, but general-purpose
@@ -337,7 +337,7 @@ The span class is available as `span-class`, which is used to retrieve the
 class's defined color with \option{getSpanColor} (or the fallback default
 color).
 
-`style-type` denotes the way \cmd{span} is applied to the music and can take one
+`style-type` denotes the way \cmd{tagSpan} is applied to the music and can take one
 out of the values `wrap`, `tweak` and `once`, and we organize the choice with a
 `case` expression. In general our function has to act differently depending on
 the application type.
