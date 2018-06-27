@@ -33,7 +33,7 @@ can be loaded with
 The most basic use of \cmd{tagSpan} is marking up a music expression with an
 arbitrary name:
 
-```{.lilypond include=basic-sequential.ly}
+```{.lilypond include=span-basic-sequential.ly}
 ```
 
 This indicates that the two `d` are in some way “blurred” and is mostly equivalent to writing
@@ -44,7 +44,7 @@ This is some <span class="blurred">blurred</span> text.
 
 In HTML. And just like in HTML/CSS this doesn't actually make the word look in any specific way, the user will have to supply style sheets to actually do that job. However, in our case the two notes are by default colored with “darkmagenta”:
 
-\lilypondfile{basic-sequential.ly}
+\lilypondfile{span-basic-sequential.ly}
 
 \cmd{tagSpan} first looks for a registered styling function for the class
 `blurred`.  Since we haven't specified one there is no visual modification of
@@ -65,18 +65,18 @@ inserting an additional \cmd{with \{\}} block after the class name. The only
 attribute supported natively by spans is `item`, which targets the span to a
 specific grob type within the music.
 
-```{.lilypond include=basic-with-item.ly}
+```{.lilypond include=span-basic-with-item.ly}
 ```
 
 Will only color the beams instead of the whole music.
 
-\lilypondfile{basic-with-item.ly}
+\lilypondfile{span-basic-with-item.ly}
 
 It is also possible to target grobs from other contexts:
 
-```{.lilypond include=basic-with-context-item.ly}
+```{.lilypond include=span-basic-with-context-item.ly}
 ```
-\lilypondfile{basic-with-context-item.ly}
+\lilypondfile{span-basic-with-context-item.ly}
 
 Additional custom attributes are allowed but don't have any immediate effect
 from withing the \ollPackage{span} module. However, they are carried along with
@@ -108,9 +108,9 @@ Again it is possible to target specific grob types with the `item` attribute. as
 can be seen in the second instance, where in the `eis'` only the accidental is
 colored.
 
-```{.lilypond include=basic-single.ly}
+```{.lilypond include=span-basic-single.ly}
 ```
-\lilypondfile{basic-single.ly}
+\lilypondfile{span-basic-single.ly}
 
 Note that it is only possible to address elements this way that are *implicitly*
 created from the note or rest, such as accidentals, beams or flags. Elements
@@ -123,9 +123,9 @@ that are *attached* to the note such as articulations, text or dynamics can
 To address articulations, dynamics and other so called *post-event* elements it
 is possible to apply \cmd{tagSpan} as a post-event too.
 
-```{.lilypond include=basic-post-event.ly}
+```{.lilypond include=span-basic-post-event.ly}
 ```
-\lilypondfile{basic-post-event.ly}
+\lilypondfile{span-basic-post-event.ly}
 
 For technical reasons it is *possible* to specify an `item` attribute, but this
 can't do any good and should be avoided. The post-event application is
@@ -141,10 +141,10 @@ signatures, rehearsal or metronome marks etc. Typically these are not in the
 attribute. However, \cmd{tagSpan} tries to determine the target automatically if no
 `item` attribute is provided, and a number of elements are already supported:
 
-```{.lilypond include=non-rhythmic-events.ly}
+```{.lilypond include=span-non-rhythmic-events.ly}
 ```
 
-\lilypondfile{non-rhythmic-events.ly}
+\lilypondfile{span-non-rhythmic-events.ly}
 
 Elements that can be directly targeted like this are \cmd{time}, \cmd{key},
 \cmd{clef}, \cmd{mark}, \cmd{ottava} and \cmd{tempo}.
@@ -164,7 +164,7 @@ Footnotes are not properly printed in the context of this manual, therefore only
 the source is printed here. But the file `footnotes.ly` from the usage-examples
 directory may freely be compiled on its own.
 
-```{.lilypond include=footnotes.ly}
+```{.lilypond include=span-footnotes.ly}
 ```
 
 ## Creating Balloon Text Annotations
@@ -187,7 +187,7 @@ Annotations can (like footnotes) not be represented in this manual, so again
 only the source is printed, while the file `annotations.ly` can be compiled
 independently.
 
-```{.lilypond include=annotations.ly}
+```{.lilypond include=span-annotations.ly}
 ```
 
 
@@ -386,9 +386,9 @@ Styling functions are not limited to tweaking grob properties but can also *add*
 elements to the music or its elements. Typical use cases would be marks at the
 beginning and the end, (text) spanners or similar items.
 
-```{.lilypond include=ottava-span.ly}
+```{.lilypond include=span-ottava-span.ly}
 ```
-\lilypondfile{ottava-span.ly}
+\lilypondfile{span-ottava-span.ly}
 
 In this example the span `ottava` sets the ottava of the wrapped music. Of
 course this could be achieved with little extra effort using \cmd{ottava}
@@ -435,9 +435,9 @@ grob name and a property, and optionally a context, e.g. `'(Slur thickness)` or
 \cmd{override} for each element, then pass through the original music and add
 \cmd{revert} statements for all overrides.
 
-```{.lilypond include=wrap-span.ly}
+```{.lilypond include=span-wrap-span.ly}
 ```
-\lilypondfile{wrap-span.ly}
+\lilypondfile{span-wrap-span.ly}
 
 Note that in this example there is no `case` switch for the different
 `style-type` values, which means that the styling function may fail in some
