@@ -296,7 +296,12 @@ Using only last element from that list."
      (is-sequential? (not (null? (ly:music-property mus 'elements))))
      (is-rhythmic-event? (memq 'rhythmic-event (ly:music-property mus 'types)))
      (is-post-event? (memq 'post-event (ly:music-property mus 'types)))
-     (anchor (if is-sequential? (first (ly:music-property mus 'elements)) mus))
+     (first-element 
+      (if is-sequential? (first (ly:music-property mus 'elements)) mus))
+     (anchor
+      (if (memq 'event-chord (ly:music-property first-element 'types))
+          (first (ly:music-property first-element 'elements))
+          first-element))
      (style-type
       (cond
        (is-sequential? 'wrap)      ;; sequential music expression
