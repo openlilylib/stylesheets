@@ -12,6 +12,7 @@ description: <
   >
 modules: [
   span
+  util
 ]
 oll-core: 0.5.0
 maintainers: [

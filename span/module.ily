@@ -37,7 +37,7 @@
 % If highlighting functions are provided they will be applied
 % to the enclosed music.
 
-\loadModule oll-core.util.color-music
+\loadModule stylesheets.util
 
 % Define a new music property that will hold information about the span.
 % This is not directly used within the stylesheets.span module but can
@@ -77,7 +77,6 @@
   (e.g. marks, spanners, etc.) instead of only *style* the existing items.
 %}
 
-\include "styling-helpers.ily"
 
 % Create a styling function for a span
 % The resulting music function must take exactly one argument
@@ -312,6 +311,7 @@ Using only last element from that list."
       (message (assq-ref annotation 'message))
       (footnote-offset (assq-ref annotation 'footnote-offset))
       (footnote-text (assq-ref annotation 'footnote-text))
+      (balloon-offset (assq-ref annotation 'balloon-offset))
       )
      (if (or
           (and ann-type (not message))
