@@ -72,7 +72,7 @@ colorMusic =
 
 
 % Helper to simplify the implementation of 'wrap functions
-% wrap-span takes a list of override definitions as pairs:
+% wrapSpan takes a list of override definitions as pairs:
 % - symbol-list-or-symbol? to specify the target grob and property
 % - any Scheme value for the property value
 
@@ -86,7 +86,7 @@ colorMusic =
 
 % Apply all rules from props as a \temporary \override
 % before issuing the music and \revert-ing the overrides.
-#(define wrap-span
+#(define wrapSpan
    (define-music-function (props music)(overrides-list? ly:music?)
      (make-sequential-music
       (append
