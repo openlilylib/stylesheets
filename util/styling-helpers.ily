@@ -92,7 +92,7 @@ colorMusic =
       (append
        (map
         (lambda (o)
-          (temporary (overrideProperty (car o) (cdr o))))
+          #{ \temporary \override #(car o) = #(cdr o) #})
         props)
        (list music)
        (map
