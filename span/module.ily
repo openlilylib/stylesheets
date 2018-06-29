@@ -267,6 +267,78 @@ Using only last element from that list."
 % Functions to create the span and span annotation
 %
 
+% Validators are functions validating a span. By default the span
+% module does not define any validators, but for example the
+% scholarly.editorial-markup module does so, and users/libraries
+% are strongly encouraged to make use of that functionality.
+%
+% Validators are scheme-functions created with the define-span-validator
+% macro.
+\registerOption stylesheets.span.validators
+#'((generic . #f))
+
+% Macro creating a scheme-function to validate a span's annotation.
+% The function expects a <span-class> symbol, and an <annotation> alist.
+% <warning-message> is available and can be written to from within the body.
+% The body must be one expression evaluating to a 'valid' boolean?
+% <annotation> can be modified to update the annotation (e.g. with default values).
+%
+% If the span is not 'valid' a warning is issued, and if <warning-message>
+% has been set! from the function body it is appended to the warning.
+#(define-macro (define-span-validator docstring . code)
+   ; all wrapping code is (semi)quoted
+   `(define-scheme-function
+     (span-class annotation)(symbol? alist?)
+     ,(if (string? docstring)
+          docstring
+          "define-styling-function was here")
+     (let*
+      ((warning-message "")
+       (valid
+        ,@(if (string? docstring) code (cons docstring code))))
+      (if (not valid)
+          (oll:warn "Invalid '~a' span. ~a" span-class warning-message))
+      annotation)))
+
+% Generic span validator, called for *all* spans.
+% - ensures that all annotations with ann-type (input-annotations)
+%   also have a 'message' set.
+% - ensures that if a footnote is created some message text is available.
+% - ensures that if a balloon text is created a message text is available.
+#(define generic-span-validator
+   (define-span-validator
+    (let*
+     ((ann-type (assq-ref annotation 'ann-type))
+      (message (assq-ref annotation 'message))
+      (footnote-offset (assq-ref annotation 'footnote-offset))
+      (footnote-text (assq-ref annotation 'footnote-text))
+      )
+     (if (or
+          (and ann-type (not message))
+          (and footnote-offset (not (or message footnote-text)))
+          (and balloon-offset (not (or message balloon-text))))
+         (set! annotation
+               (append annotation '((message . "No message provided")))))
+     #t)))
+
+% Validate a span's annotation.
+% If a generic validator is registered it is called,
+% followed by a class-specific validator if available.
+#(define (validate-annotation annotation)
+   (let*
+    ((span-class (assq-ref annotation 'span-class))
+     ;; plug in an optional (custom) generic validator
+     (generic-validator (getOption '(stylesheets span validators generic)))
+     ;; retrieve a validator function for the span-class
+     (validator (getChildOptionWithFallback
+                 '(stylesheets span validators) span-class #f)))
+    ;; Generic validation: annotations require a 'message attribute
+    (set! annotation (generic-span-validator span-class annotation))
+    (if generic-validator
+        (set! annotation (generic-validator span-class annotation)))
+    (if validator
+        (validator span-class annotation)
+        annotation)))
 
 % Create and return a basic alist describing a span.
 % Can be used to build an span-annotation for scholarly.annotate
@@ -288,15 +360,11 @@ Using only last element from that list."
 %   is also stored in the annotation.
 #(define (make-span-annotation span-class attrs location mus)
    (let*
-    ;
-    ; TODO: use type-checking provided for context-mod->props
-    ; (ensure some properties are set with default values (e.g. 'message')
-    ;
     ((annot (if attrs (context-mod->props attrs) '()))
      (is-sequential? (not (null? (ly:music-property mus 'elements))))
      (is-rhythmic-event? (memq 'rhythmic-event (ly:music-property mus 'types)))
      (is-post-event? (memq 'post-event (ly:music-property mus 'types)))
-     (first-element 
+     (first-element
       (if is-sequential? (first (ly:music-property mus 'elements)) mus))
      (anchor
       (if (memq 'event-chord (ly:music-property first-element 'types))
@@ -333,14 +401,15 @@ Using only last element from that list."
     ;)
     ;; add several manual properties to the given <attrs>
     (ly:music-set-property! anchor 'span-annotation
-      (append annot
-        `((is-sequential? . ,is-sequential?)
-          (is-post-event? . ,is-post-event?)
-          (is-rhythmic-event? . ,is-rhythmic-event?)
-          (style-type . ,style-type)
-          (span-class . ,span-class)
-          (location . ,location)
-          (context-id . ,context-id))))
+      (validate-annotation
+       (append annot
+         `((is-sequential? . ,is-sequential?)
+           (is-post-event? . ,is-post-event?)
+           (is-rhythmic-event? . ,is-rhythmic-event?)
+           (style-type . ,style-type)
+           (span-class . ,span-class)
+           (location . ,location)
+           (context-id . ,context-id)))))
     (ly:music-set-property! mus 'anchor anchor)
     anchor))
 
@@ -384,6 +453,8 @@ tagSpan =
          (if (getOption '(stylesheets span use-colors))
              ;; Apply coloring
              (set! music ((getSpanFunc 'default) music)))))
+    ;; optionally create an input-annotation for scholarly.annotate
+    ;; (note that this attaches to the *grob*, not to the *music*)
     (if (assq-ref span-annotation 'ann-type)
         (propertyTweak 'input-annotation span-annotation anchor))
     music))
