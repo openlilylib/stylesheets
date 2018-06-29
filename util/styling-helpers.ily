@@ -101,3 +101,35 @@ colorMusic =
         props)))))
 
 
+% Add the same articulation to all notes and chords in a music expression.
+% Works with all unary articulations, dynamics or markup.
+% - articulation
+%   a single post-event music expression
+% - music
+%   can be sequential music or a single event
+addArticulations =
+#(define-music-function (articulation music)(ly:music? ly:music?)
+   (let*
+    ((_elts (ly:music-property music 'elements))
+     ;; wrap single music expression to a list if necessary
+     (elements (if (not (null? _elts)) _elts (list music))))
+    (for-each
+     (lambda (elt)
+       (let*
+        ((types (ly:music-property elt 'types))
+         (is-chord (memq 'event-chord types))
+         (anchor (if (or is-chord (memq 'note-event types)) elt #f)))
+        (cond
+         (is-chord
+          ;; append the articulation as a separate element to the event chord
+          (ly:music-set-property! anchor 'elements
+            (append
+             (ly:music-property anchor 'elements)
+             (list articulation))))
+         (anchor
+          ;; add the articulation to the anchor's articulations
+          (let ((artics (ly:music-property anchor 'articulations)))
+            (ly:music-set-property! anchor 'articulations
+              (append artics (list articulation))))))))
+     elements)
+    music))
