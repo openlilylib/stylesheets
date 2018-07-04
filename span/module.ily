@@ -403,6 +403,17 @@ Using only last element from that list."
     (ly:music-set-property! mus 'anchor anchor)
     anchor))
 
+% If the span-annotation has an ann-type attribute
+% we attach the annotation as 'input-annotation to the grob.
+% In this case we'll also have to make sure ann-type is a symbol.
+#(define (make-input-annotation span-annotation anchor)
+   (let ((ann-type (assq-ref span-annotation 'ann-type)))
+     (if ann-type
+         (propertyTweak
+          'input-annotation
+          (assq-set! span-annotation 'ann-type (string->symbol ann-type))
+          anchor))))
+
 
 % Retrieve the styling information corresponding to the span type
 % and apply them to the music expression.
@@ -445,6 +456,5 @@ tagSpan =
              (set! music ((getSpanFunc 'default) music)))))
     ;; optionally create an input-annotation for scholarly.annotate
     ;; (note that this attaches to the *grob*, not to the *music*)
-    (if (assq-ref span-annotation 'ann-type)
-        (propertyTweak 'input-annotation span-annotation anchor))
+    (make-input-annotation span-annotation anchor)
     music))
