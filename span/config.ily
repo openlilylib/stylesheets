@@ -51,4 +51,16 @@ setSpanFunc =
    (setChildOption '(stylesheets span functions) type func))
 
 
+% Validators are functions validating a span. By default the span
+% module does not define any validators, but for example the
+% scholarly.editorial-markup module does so, and users/libraries
+% are strongly encouraged to make use of that functionality.
+%
+% Validators are scheme-functions created with the define-span-validator
+% macro.
+\registerOption stylesheets.span.validators
+#'((generic . #f))
 
+setSpanValidator =
+#(define-void-function (span-class validator) (symbol? procedure?)
+   (setChildOption '(stylesheets span validators) span-class validator))

@@ -266,16 +266,6 @@ Using only last element from that list."
 % Functions to create the span and span annotation
 %
 
-% Validators are functions validating a span. By default the span
-% module does not define any validators, but for example the
-% scholarly.editorial-markup module does so, and users/libraries
-% are strongly encouraged to make use of that functionality.
-%
-% Validators are scheme-functions created with the define-span-validator
-% macro.
-\registerOption stylesheets.span.validators
-#'((generic . #f))
-
 % Macro creating a scheme-function to validate a span's annotation.
 % The function expects a <span-class> symbol, and an <annotation> alist.
 % <warning-message> is available and can be written to from within the body.
