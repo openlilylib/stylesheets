@@ -60,6 +60,12 @@
 
 \include "config.ily"
 
+% Helper function to extract the ly:music? expression that holds
+% the input-annotation, either the music itself or its first sub-element.
+#(define (get-anchor music)
+   (let ((anchor (ly:music-property music 'anchor)))
+     (if (null? anchor) music anchor)))
+
 %%%%%%%%%%%%%%%%%%%%%%%%
 % Styling functions
 
@@ -104,15 +110,16 @@
 %   a symbol or (for style-type = 'wrap or 'once) a symbol-list?
 %   (or ##f as equivalent to not present)
 
-% A music exression that has an 'anchor property, which is a music
-% expression (the first element or the music expression itself)
-% containing a 'span-annotation property.
+% A music expression that includes a 'span-annotation music-property,
+% either attached to the main music expression (for non-sequential music)
+% or to an 'anchor music-property, which is the first rhythmic-event
+% in a sequential music expression.
 #(define (span-music? obj)
    (and (ly:music? obj)
-        (let ((anchor (ly:music-property obj 'anchor)))
-          (and (not (null? anchor))
-               (let ((span-annotation (ly:music-property anchor 'span-annotation)))
-                 (not (null? span-annotation)))))))
+        (let*
+         ((anchor (get-anchor obj))
+          (span-annotation (ly:music-property anchor 'span-annotation)))
+         (not (null? span-annotation)))))
 
 % Infer the Context.Grob list to be overridden for non-rhythmic events,
 % based on the music type.
@@ -157,7 +164,7 @@ for \\once \\override: ~a" types))))
           docstring
           "define-styling-function was here")
      (let*
-      ((anchor (ly:music-property music 'anchor))
+      ((anchor (get-anchor music))
        (span-annotation (ly:music-property anchor 'span-annotation))
        (span-class (assq-ref span-annotation 'span-class))
        (style-type (assq-ref span-annotation 'style-type))
@@ -188,7 +195,8 @@ Using only last element from that list."
       ;; code must return the processed music expression
       (let ((processed-music ,@(if (string? docstring) code (cons docstring code))))
         ;; reattach the anchor to the music expression for further use
-        (ly:music-set-property! processed-music 'anchor anchor)
+        (if (assq-ref span-annotation 'is-sequential?)
+            (ly:music-set-property! processed-music 'anchor anchor))
         processed-music))))
 
 % Default (fallback) styling font that simply applies coloring
@@ -400,7 +408,9 @@ Using only last element from that list."
            (span-class . ,span-class)
            (location . ,location)
            (context-id . ,context-id)))))
-    (ly:music-set-property! mus 'anchor anchor)
+    (if is-sequential?
+        ;; set the 'anchor property for later retrieval
+        (ly:music-set-property! mus 'anchor anchor))
     anchor))
 
 % If the span-annotation has an ann-type attribute
@@ -415,12 +425,7 @@ Using only last element from that list."
           anchor))))
 
 
-% Retrieve the styling information corresponding to the span type
-% and apply them to the music expression.
-% Distinguishes between wrappable and tweakable music expressions
-% and calls the appropriate span function.
-
-% Encode a \span like a <span class=""> in HTML.
+% Encode a \tagSpan like a <span class=""> in HTML.
 % Typically used to markup up some single or sequential music expression
 % to "be" something.
 % Apart from the encoding aspect \span typically produces some visual highlighting,
@@ -432,12 +437,8 @@ Using only last element from that list."
 %   by the user.
 % - attrs (optional)
 %   \with {} block with further specification of the case.
-%   Currently only <item> is supported, used for specifying a target grob-type
-%   (
-% - mus (mandatory)
+% - music (mandatory)
 %   the music to be annotated
-%
-
 tagSpan =
 #(define-music-function (span-class attrs music)
    (symbol? (ly:context-mod?) ly:music?)
