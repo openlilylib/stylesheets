@@ -64,7 +64,12 @@
 % the input-annotation, either the music itself or its first sub-element.
 #(define (get-anchor music)
    (let ((anchor (ly:music-property music 'anchor)))
-     (if (null? anchor) music anchor)))
+     (cond
+      ((not (null? anchor)) anchor)
+      ((memq 'event-chord (ly:music-property music 'types))
+       (first (ly:music-property music 'elements)))
+      (else music))))
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%
 % Styling functions
@@ -365,7 +370,9 @@ Using only last element from that list."
 #(define (make-span-annotation span-class attrs location mus)
    (let*
     ((annot (if attrs (context-mod->props attrs) '()))
-     (is-sequential? (not (null? (ly:music-property mus 'elements))))
+     (is-chord? (memq 'event-chord (ly:music-property mus 'types)))
+     (is-sequential? (and (not (null? (ly:music-property mus 'elements)))
+                          (not is-chord?)))
      (is-rhythmic-event? (memq 'rhythmic-event (ly:music-property mus 'types)))
      (is-post-event? (memq 'post-event (ly:music-property mus 'types)))
      (first-element
@@ -377,6 +384,7 @@ Using only last element from that list."
      (style-type
       (cond
        (is-sequential? 'wrap)      ;; sequential music expression
+       (is-chord? 'wrap)           ;; single chord
        (is-rhythmic-event? 'tweak) ;; single music events
        (is-post-event? 'tweak)     ;; post-event
        (else 'once)))              ;; non-rhythmic events such as clefs, keys, etc.
@@ -407,7 +415,8 @@ Using only last element from that list."
     (ly:music-set-property! anchor 'span-annotation
       (validate-annotation
        (append annot
-         `((is-sequential? . ,is-sequential?)
+         `((is-chord? . ,is-chord?)
+           (is-sequential? . ,is-sequential?)
            (is-post-event? . ,is-post-event?)
            (is-rhythmic-event? . ,is-rhythmic-event?)
            (style-type . ,style-type)
