@@ -6,8 +6,6 @@ date: \today
 toc: yes
 ---
 
-\lysetoption{includepaths}{/home/uliska/git/oll-lib/}
-
 The openLilyLib \ollPackage{stylesheets}
 package^[<https://github.com/openlilylib/stylesheets>] is intended to become a
 large-scale solution and infrastructure to manage stylesheets for LilyPond
@@ -193,6 +191,35 @@ directory may freely be compiled on its own.
 
 By providing a `balloon-offset` attribute it is possible to create a balloon
 text annotation.
+
+
+### Creating Music Examples
+
+A temporary staff can be created by adding an \option{example} attribute
+to the span and storing a music expression or a score in it.  This is then
+attached to the anchor element as a “text” articulation.  **NOTE:** It is *not*
+possible to attach ossia staves to spans applied as post-events.
+
+The music expression may be of arbitrary complexity and include multiple staves.
+Alternatively to a bare music expression a complete \cmd{score \{\}} expression
+may be given, which requires a \cmd{layout \{\}} block to be specified
+explicitly but giving the opportunity to provide a custom layout definition in
+it.
+
+By default the ossia is centered above the anchor note, but the
+\option{example-alignment} and \option{example-direction} allow changing these
+settings. Support for changing the example's staff size and suppressing the
+regular staff elements (key and time signatures, clef) is on the wish list but
+hasn't implemented yet.
+
+```{.lilypond include=span-music-example-options.ly}
+```
+\lilypondfile{span-music-example-options.ly}
+
+```{.lilypond include=span-music-example-score.ly}
+```
+\lilypondfile{span-music-example-score.ly}
+
 
 ### Creating `scholarLY` Annotations
 

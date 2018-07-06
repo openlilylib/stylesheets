@@ -280,6 +280,44 @@ Using only last element from that list."
    (define-void-function (mus anchor annot) (ly:music? ly:music? list?)
      ))
 
+% Create and attach a temporary Example staff
+#(define make-music-example
+   (define-void-function (mus anchor annot) (ly:music? ly:music? list?)
+     (let ((example (assq-ref annot 'example)))
+       (if example
+           (if (or (ly:score? example) (ly:music? example))
+               (if (not (assq-ref annot 'is-post-event?))
+                   (let*
+                    ((example-score
+                      (if (ly:score? example) example #{ \score { #example  \layout {} } #}))
+                     ;                  (scorify-music example))
+                     (alignment (or (assq-ref annot 'example-alignment) 0))
+                     (direction (or (assq-ref annot 'example-direction) 1))
+                     ;
+                     ; TODO:
+                     ; - enable sizing of example
+                     ; - enable suppression of clef and timesig
+                     ;
+                     (chord
+                      (let ((anchor-chord (ly:music-property mus 'anchor-chord)))
+                        (if (null? anchor-chord) #f anchor-chord)))
+                     (text-script
+                      (make-music
+                       'TextScriptEvent
+                       'tweaks `((self-alignment-X . ,alignment)
+                                 (direction        . ,direction))
+                       'text (markup #:score example-score))))
+                    (if (assq-ref annot 'is-chord?)
+                        (ly:music-set-property! mus 'elements
+                          (append
+                           (ly:music-property mus 'elements)
+                           (list text-script)))
+                        (ly:music-set-property! anchor 'articulations
+                          (append
+                           (ly:music-property anchor 'articulations)
+                           (list text-script)))))
+                   (oll:warn "Example cannot be created for post-event music, skipping."))
+               (oll:warn "Example must be LilyPond music or a score expression. Found ~a" example))))))
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Functions to create the span and span annotation
@@ -463,6 +501,7 @@ tagSpan =
      (span-annotation (ly:music-property anchor 'span-annotation)))
     (make-footnote music anchor span-annotation)
     (make-balloon music anchor span-annotation)
+    (make-music-example music anchor span-annotation)
     (if (getOption '(stylesheets span use-styles))
         (begin
          ;; Apply the styling function
