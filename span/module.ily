@@ -193,11 +193,17 @@ Using only last element from that list."
                  orig-item))))))
       ;; insert (unquoted) user generated code
       ;; code must return the processed music expression
-      (let ((processed-music ,@(if (string? docstring) code (cons docstring code))))
-        ;; reattach the anchor to the music expression for further use
-        (if (assq-ref span-annotation 'is-sequential?)
-            (ly:music-set-property! processed-music 'anchor anchor))
-        processed-music))))
+      (let*
+       ((processed-music ,@(if (string? docstring) code (cons docstring code)))
+        (is-now-sequential?
+         (memq 'sequential-music (ly:music-property processed-music 'types)))
+        )
+       ;; reattach the anchor to the music expression for further use
+       (if is-now-sequential?
+           (begin
+            (assq-set! span-annotation 'style-type 'wrap)
+            (ly:music-set-property! processed-music 'anchor anchor)))
+       processed-music))))
 
 % Default (fallback) styling font that simply applies coloring
 % to the affected music, using the appropriate method for the style-type
