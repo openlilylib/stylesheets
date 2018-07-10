@@ -152,6 +152,7 @@
        `((context-specification . ,parse-context-spec)
          (key-change-event . (Staff KeySignature))
          (mark-event . (Score RehearsalMark))
+         (multi-measure-rest . (Staff MultiMeasureRest))
          (ottava-music . (Staff OttavaBracket))
          (tempo-change-event . (Score MetronomeMark))
          (time-signature-music . (Staff TimeSignature)))
