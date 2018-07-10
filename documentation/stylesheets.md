@@ -221,6 +221,22 @@ hasn't implemented yet.
 \lilypondfile{span-music-example-score.ly}
 
 
+### Creating an Ossia Staff
+
+An ossia staff can be created by adding an \option{ossia} attribute to the span
+and storing a music expression in it.  This will create a temporary staff with
+the music.  Different from the music example this is horizontally aligned with
+the main music.  The option \option{ossia-omit} can hold a symbol list with
+grobs not to be printed in the ossia (e.g. clef, key, time).  The option
+\option{ossia-direction} can switch the direction of the temporary staff which
+is by default printed above the main staff.
+
+\ollIssue{NOTE:}
+
+This doesn't work yet. There is some code in `span/module.ily` (procedure
+`make-ossia`) which is based on code that works as a standalone function but not
+in the module's context. *Some external help would be great!*
+
 ### Creating `scholarLY` Annotations
 
 Spans can implicitly trigger the generation of a \ollPackage{scholarly.annotate}
