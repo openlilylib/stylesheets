@@ -319,6 +319,101 @@ Using only last element from that list."
                    (oll:warn "Example cannot be created for post-event music, skipping."))
                (oll:warn "Example must be LilyPond music or a score expression. Found ~a" example))))))
 
+% Create and attach a temporary Ossia staff
+%
+% TODO: This does not work yet!
+% It is called and doesn't cause problems but the ossia isn't created.
+% A working standalone example (thanks to David Kastrup)
+% is given in comments below
+#(define make-ossia
+   (define-music-function (mus anchor annot) (ly:music? ly:music? list?)
+     (let*
+      ((name #f)
+       (ossia-music (assq-ref annot 'ossia-music))
+       (ossia-omit (or (assq-ref annot 'ossia-omit) '())))
+      (if ossia-music
+          (set! mus
+                #{
+                  \applyContext
+                  #(lambda (context)
+                     (set! name (ly:context-id (ly:context-find context 'Staff))))
+                  << \new Staff = "ossia" \with {
+                    #(let ((align (assq-ref annot 'ossia-direction)))
+                       (if (or (not align) (= align UP))
+                           (ly:make-context-mod
+                            `((apply
+                               ,(lambda (c)
+                                  (set! (ly:context-property c 'alignAboveContext) name)))))))
+                    #@(map
+                      (lambda (grob)
+                        (omit (list grob)))
+                      ossia-omit)
+                     } { #ossia-music }
+                     #mus
+                  >>
+                #}))
+      mus)))
+
+%{
+ossia =
+#(define-music-function
+  (ossia-music music) (ly:music? ly:music?)
+  (let*
+   ((name #f))
+   (make-sequential-music
+    (list
+     (make-apply-context
+      (lambda (context)
+        (set! name (ly:context-id (ly:context-find context 'Staff)))))
+     #{
+       << \new Staff \with {
+         #(ly:make-context-mod
+           `((apply
+              ,(lambda (c)
+                 (set! (ly:context-property c 'alignAboveContext) name)))))
+         #@(map
+         (lambda (grob)
+         (omit (list grob)))
+         '())
+          } { #ossia-music }
+          #music
+       >>
+     #}))))
+ossia =
+#(define-music-function
+  (ossia-music music) (ly:music? ly:music?)
+  (let*
+   ((name #f))
+
+   (make-sequential-music
+    (list
+     (make-apply-context
+      (lambda (context)
+        (set! name (ly:context-id (ly:context-find context 'Staff)))))
+     #{
+       << \new Staff \with {
+         #(if #t
+              (ly:make-context-mod
+               `((apply
+                  ,(lambda (c)
+                     (set! (ly:context-property c 'alignAboveContext) name))))))
+         #@(map
+           (lambda (grob)
+             (omit (list grob)))
+           '())
+          } { #ossia-music }
+          #music
+       >>
+     #}))))
+
+\new Staff = "My Staff"
+\relative {
+  g'8 a b c
+  \ossia { d c b a } { c b a g }
+  g b d b g2
+}
+%}
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Functions to create the span and span annotation
 %
@@ -502,6 +597,7 @@ tagSpan =
     (make-footnote music anchor span-annotation)
     (make-balloon music anchor span-annotation)
     (make-music-example music anchor span-annotation)
+    (make-ossia music anchor span-annotation)
     (if (getOption '(stylesheets span use-styles))
         (begin
          ;; Apply the styling function
