@@ -52,11 +52,6 @@
 #(set-object-property! 'anchor 'music-doc
    "Pointer to the music element the annotation is attached to")
 
-% Create custom property 'annotation
-% to pass information from the music function to the engraver
-#(set-object-property! 'input-annotation 'backend-type? alist?)
-#(set-object-property! 'input-annotation 'backend-doc "custom grob property")
-
 
 \include "config.ily"
 
@@ -346,9 +341,9 @@ Using only last element from that list."
                                ,(lambda (c)
                                   (set! (ly:context-property c 'alignAboveContext) name)))))))
                     #@(map
-                      (lambda (grob)
-                        (omit (list grob)))
-                      ossia-omit)
+                    (lambda (grob)
+                    (omit (list grob)))
+                    ossia-omit)
                      } { #ossia-music }
                      #mus
                   >>
@@ -568,10 +563,13 @@ ossia =
 #(define (make-input-annotation span-annotation anchor)
    (let ((ann-type (assq-ref span-annotation 'ann-type)))
      (if ann-type
-         (propertyTweak
-          'input-annotation
-          (assq-set! span-annotation 'ann-type (string->symbol ann-type))
-          anchor))))
+         (if (ollModuleLoaded 'scholarly 'annotate)
+             (propertyTweak
+              'input-annotation
+              (assq-set! span-annotation 'ann-type (string->symbol ann-type))
+              anchor)
+             (oll:warn "'~a' annotation present but scholarly.annotate not loaded. Skipping!"
+               ann-type)))))
 
 
 % Encode a \tagSpan like a <span class=""> in HTML.

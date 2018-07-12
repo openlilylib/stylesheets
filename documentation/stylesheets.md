@@ -246,6 +246,8 @@ with a valid annotation type value (`musical-issue`, `critical-remark`,
 forwarded to the annotation engraver, and the handling is identical to the
 regular \ollPackage{scholarly.annotate} behaviour.
 
+If \ollPackage{scholarly.annotate} isn't loaded a warning is issued.
+
 Annotations can (like footnotes) not be represented in this manual, so again
 only the source is printed, while the file `annotations.ly` can be compiled
 independently.
