@@ -1,40 +1,81 @@
 ---
 documentclass: ollmanual
-title: The `stylesheets` openLilyLib Package
+title: The `stylesheets` Package
+subtitle: openLilyLib
 author: Urs Liska
 date: \today
 toc: yes
 ---
 
-The openLilyLib \ollPackage{stylesheets}
-package^[<https://github.com/openlilylib/stylesheets>] is intended to become a
-large-scale solution and infrastructure to manage stylesheets for LilyPond
-scores. It will specifically target two areas of tasks, on the one hand
+\pagebreak
+# Introduction
+
+\ollPackage{openLilyLib}^[<https://github.com/openlilylib>] (or “open LilyPond
+Library”) is an extension system for the GNU LilyPond^[<http://lilypond.org>]
+score writer.  It provides a plugin infrastructure, a general-purpose toolkit of
+building blocks, and a growing number of packages for specific purposes. The
+main intention is to encapsulate potentially complex programming and make it
+available with a consistent, modular, and easy-to-use interface.
+
+**TODO:** Provide a central source of documentation.
+
+
+The \ollPackage{stylesheets}
+package^[<https://github.com/openlilylib/stylesheets>] aims at becoming a
+comprehensive solution and infrastructure to manage stylesheets for LilyPond
+scores.  It will specifically target two areas of concern: on the one hand
 providing tools to create simpler and more powerful styling of score elements,
 on the other hand assisting with the application of modular and hierarchical
 collections of (house) styles.
 
-For now only one single module has been implemented, the
-\ollPackage{stylesheets.span} module. But while this will only be a minor
-building block of the \ollPackage{stylesheets} package it is an important tool
-for other packages, and it can well be used on its own already.
+As a first step a single module has been developed and will be released as-is:
+the \ollPackage{stylesheets.span} module.  But while it will only be a minor
+building block of the \ollPackage{stylesheets} package as it is conceived it can already be used standalone, and it is an important tool
+for other packages like \ollPackage{scholarLY}.
 
-Additionally the module \ollPackage{stylesheets.util} provides a small number
-of `styling-helpers` that are used by \ollPackage{span}. These too may be used
-independently of the current package.
+Additionally the module \ollPackage{stylesheets.util} provides a small number of
+`styling-helpers` that are used by \ollPackage{stylesheets.span}. These too may
+be used independently of the current package.
+
+
+## Installation and Dependencies
+
+The installation of openLilyLib and its packages is described in the \ollPackage{oll-core} documentation.^[<https://github.com/openlilylib/oll-core/wiki>]
+The code for the \ollPackage{scholarLY} package may be cloned or downloaded from `https://github.com/openlilylib/scholarly`.
+
+\ollPackage{stylesheet} depends on the following openLilyLib package that has
+to be installed as well:
+
+* oll-core^[<https://github.com/openlilylib/oll-core>]
+
+To make \ollPackage{stylesheets} available to a LilyPond document first include
+\ollPackage{oll-core}, then load the package with \cmd{loadPackage} or an
+individual module with \cmd{loadModule}
+
+```lilypond
+\include "oll-core/package.ily"
+\loadModule stylesheets.span
+```
 
 
 \pagebreak
 # The `span` Module
 
-The main feature of the \ollPackage{stylesheets.span} module is the
-\cmd{tagSpan} command which is loosely modeled after the `<span>` element from
-HTML. It “tags” a given music expression with a ”class” and provides an
-interface to applying styling functions, either as visual reminders during the
-editing process or as persistent formatting similar to character styles -- or
-HTML spans. Additionally spans can trigger annotations from the
-\ollPackage{scholarly.annotate} package, and they form the components of a
-\ollPackage{scholarly.choice} \cmd{choice}.
+The \ollPackage{stylesheets.span} module is used to mark up or “tag” a span of
+music “as something”, effectively giving it a “class”, just like the `<span>`
+element does in HTML.  And just like HTML spans LilyPond spans don't initially
+do much on their own but provide an interface to apply custom styles to the
+spanned music.  But other than the HTML counterpart LilyPond spans work as
+“music functions”, which are very powerful tools that can do much more than
+merely modifying visual properties.  If desired they can add, remove or modify
+the content from the music, lending themselves to much more than mere “styling”.
+
+In addition spans provide an easy interface to add certain items to the tagged
+music, such as footnotes, balloon text annotations or even music examples and
+ossia staves.
+
+Finally spans can be the basis to create annotations to be processed with the
+\ollPackage{scholarly.annotate} module.
 
 
 ## Basic Usage
@@ -53,39 +94,44 @@ arbitrary name:
 ```{.lilypond include=span-basic-sequential.ly}
 ```
 
-This indicates that the two `d` are in some way “blurred” and is mostly equivalent to writing
+This indicates that the two `d` are in some way “blurred” (whatever that means)
+and it is mostly equivalent to writing
 
 ```html
 This is some <span class="blurred">blurred</span> text.
 ```
 
-In HTML. And just like in HTML/CSS this doesn't actually make the word look in any specific way, the user will have to supply style sheets to actually do that job. However, in our case the two notes are by default colored with “darkmagenta”:
+in HTML. And just like in HTML/CSS this doesn't actually make the word look in
+any specific way, the user will have to supply style sheets to actually do that
+job. However, in our case the two notes are by default colored with
+“darkmagenta”:
 
 \lilypondfile{span-basic-sequential.ly}
 
 \cmd{tagSpan} first looks for a registered styling function for the class
 `blurred`.  Since we haven't specified one there is no visual modification of
 the music.  By default spans are colored, so \cmd{tagSpan} looks for a *color*
-specified for the `blurred` class. And since we didn't specify one either a
-default color is used instead. So without any further precautions \cmd{tagSpan} can
-be used with an arbitrary class name and will still have that default coloring
-available.
+specified for the `blurred` class. And since we didn't specify one either the
+default fallback color is used instead. So without any further precautions
+\cmd{tagSpan} can be used to tag music with an arbitrary class name and have
+some basic functionality available.
 
 \ollIssue{TODO:}
 
 Additionally `class="blurred"` will be attached to all grob elements in a resulting SVG file. *(NOTE: this has to be implemented!)*
 
+
 ### Additional properties
 
 In addition to the class name a span can be assigned additional properties by
-inserting an additional \cmd{with \{\}} block after the class name. The only
+inserting an optional \cmd{with \{\}} block after the class name. The only
 attribute supported *natively* by spans is `item`, which targets the span to a
 specific grob type within the music.
 
 ```{.lilypond include=span-basic-with-item.ly}
 ```
 
-Will only color the beams instead of the whole music.
+will only color the beams instead of the whole music.
 
 \lilypondfile{span-basic-with-item.ly}
 
@@ -94,6 +140,9 @@ It is also possible to target grobs from other contexts:
 ```{.lilypond include=span-basic-with-context-item.ly}
 ```
 \lilypondfile{span-basic-with-context-item.ly}
+
+A number of *known* attributes is available to trigger additional elements like
+footnotes etc.  These are explained in later sections.
 
 Additional custom attributes are allowed even when they don't have any immediate
 effect from within the \ollPackage{span} module. However, they are carried along
@@ -114,8 +163,7 @@ In this case the span includes all of the music within that expression, but it
 may be good to keep in mind that an *annotation* is attached to the *first*
 element within this music expression.
 
-
-\ollMargin{Single Music Elements}
+\ollMargin{Single Music Elements/Rhythmic Events}
 
 If the command is followed by a single music element like a note or a rest
 the span will include only this element, and (of course) the annotation is
@@ -132,8 +180,7 @@ colored.
 Note that it is only possible to address elements this way that are *implicitly*
 created from the note or rest, such as accidentals, beams or flags. Elements
 that are *attached* to the note such as articulations, text or dynamics can
-*not* be addressed like this.
-
+*not* be addressed like this but has to be targeted as post-events.
 
 \ollMargin{Post-events}
 
@@ -149,14 +196,13 @@ can't do any good and should be avoided. The post-event application is
 translated into a \cmd{tweak} that affects the music element directly, without
 specifying any target item.
 
-
 \ollMargin{Non-rhythmic Events}
 
 Finally it is possible to mark up *non-rhythmic* events such as key or time
 signatures, rehearsal or metronome marks etc. Typically these are not in the
 `Voice` but in a higher context and therefore need a two-element `item`
-attribute. However, \cmd{tagSpan} tries to determine the target automatically if
-*no* `item` attribute is provided, and a number of elements are already
+attribute.  However, \cmd{tagSpan} tries to determine the target automatically
+if *no* `item` attribute is provided, and a number of elements are already
 supported:
 
 ```{.lilypond include=span-non-rhythmic-events.ly}
@@ -167,6 +213,7 @@ supported:
 Elements that can be directly targeted like this are currently \cmd{time},
 \cmd{key}, \cmd{clef}, \cmd{mark}, \cmd{ottava} and \cmd{tempo}.
 
+## Creating Additional Elements
 
 ### Creating Footnotes
 
@@ -190,7 +237,8 @@ directory may freely be compiled on its own.
 \ollIssue{Not implemented yet!}
 
 By providing a `balloon-offset` attribute it is possible to create a balloon
-text annotation.
+text annotation.  This hasn't been implemented yet due to the balloon offsets
+having a very peculiar interface.
 
 
 ### Creating Music Examples
@@ -203,14 +251,14 @@ possible to attach ossia staves to spans applied as post-events.
 The music expression may be of arbitrary complexity and include multiple staves.
 Alternatively to a bare music expression a complete \cmd{score \{\}} expression
 may be given, which requires a \cmd{layout \{\}} block to be specified
-explicitly but giving the opportunity to provide a custom layout definition in
+explicitly but gives the opportunity to provide a custom layout definition in
 it.
 
 By default the ossia is centered above the anchor note, but the
 \option{example-alignment} and \option{example-direction} allow changing these
 settings. Support for changing the example's staff size and suppressing the
 regular staff elements (key and time signatures, clef) is on the wish list but
-hasn't implemented yet.
+hasn't been implemented yet.
 
 ```{.lilypond include=span-music-example-options.ly}
 ```
@@ -270,19 +318,24 @@ When a span is created a possible *anchor* element is determined, depending on
 the span application type. If the span includes a single or post-event music
 expression this expression itself becomes the span's anchor. In a sequential
 music expression the *first* element inside will be considered, and if that
-happens to be a chord the first note event inside that will be taken.
+happens to be a chord the first note event inside that will be taken. If the
+music has “elements” (as do sequential music and single chords) a *reference* to
+that anchor object is stored in the span's `'anchor` music property, otherwise
+the music expression itself is considered the anchor.
 
-A *reference* to that anchor object is stored in the span's `'anchor` music
-property, and whenever you encounter a “span music” you can access the anchor
-through `(ly:music-property <music> 'anchor)` (with `<music>` being a reference
-to the whole music expression).
+\ollFuncdef{get-anchor}{music}{}
+
+Whenever a “span music” is encountered its anchor can be obtained by the
+\option{(get-anchor <music>)} function. This returns the anchor object, either
+the first element or the expression itself.
+
 
 \ollMargin{Span Annotations}
 
 Also upon creation of a span a *span annotation* is generated, which
 essentially is a Scheme association list. This annotation is attached to the
 anchor as the `'span-annotation` music property and can therefore be accessed
-using `ly:music-property anchor 'span-annotation` like the anchor before.
+using \option{(ly:music-property (get-anchor music) 'span-annotation)`.
 
 The span annotation is populated by a number of properties determined
 automatically, plus all attributes given in the \cmd{with \{\}} block. These
@@ -303,7 +356,8 @@ The implicitly available attributes are:
 * `context-id`  
   A preliminary context ID in the form `<directory>.<file>`.
   Engravers may update this to the actual context, which is what happens
-  for example in \ollPackage{scholarly}'s `annotationCollector` engraver.
+  for example in \ollPackage{scholarly}'s `annotationEngraver` engraver.
+
 
 ### Validating Span Annotations
 
@@ -319,6 +373,7 @@ In order to implement some business logic users (or libraries) can register
 *validator* functions for specific span classes. In case of problems these will
 issue a warning message but don't abort the processing, so if there are
 unwanted results or follow-up crashes there will be a trace to the issue.
+
 
 #### Custom Validator Functions
 
@@ -364,8 +419,8 @@ warning message.
       (if (not valid)
           (set! warning-message "Missing attribute 'source'."))
       valid)))
-\setChildOption stylesheets.span.validators lemma #validate-variant
-\setChildOption stylesheets.span.validators reading #validate-variant
+\setSpanValidator lemma #validate-variant
+\setSpanValidator reading #validate-variant
 ```
 
 #### Generic Custom Validator
@@ -439,12 +494,12 @@ New styling functions should be created using the macro
 
 ## Custom Styling Functions
 
-\cmd{tagSpan} applies styling functions, and we have seen that two such functions
-are predefined by the module. Of course the true power of spans is only used
-when custom styling functions actually apply some real styling. By its nature it
-is not trivial to create robust styling functions, but the package provides some
-assistance with the process through the \option{define-styling-function} macro
-and some helper functions.
+\cmd{tagSpan} applies styling functions, and we have seen that two such
+functions are predefined by the module. Of course the true power of spans is
+only used when custom styling functions actually apply some real styling. By its
+nature it is not trivial to create robust styling functions, but the package
+provides some assistance with the process through the
+\option{define-styling-function} macro and some helper functions.
 
 ### The `define-styling-function` Macro
 
@@ -459,10 +514,9 @@ expN)` where `expN` must evaluate to the modified music expression and where
 
 The music function created by the macro takes exactly one argument of type
 `span-music?`, which doesn't have to be declared explicitly. `span-music?` is a
-music expression that has an `'anchor` property, which in turn has a
-`'span-annotation` property. But this is something one doesn't have to worry
-about because it is handled automatically by \cmd{tagSpan}. Inside the function
-this is bound to the name `music`.
+music expression whose “anchor” has a `'span-annotation` property. But this is
+something one doesn't have to worry about because it is handled automatically by
+\cmd{tagSpan}. Inside the function this is bound to the name `music`.
 
 A number of properties from the music are extracted by the macro and available
 automatically within the music function:
@@ -483,17 +537,17 @@ automatically within the music function:
   to affect. There is some validation performed depending on `style-type`.
 
 Note that while most of these are extracted from `span-annotation` just for
-convenience it is of course possible to access arbitrary (custom) attributes
-through \option{(assq-ref span-annotation '<attr-name>)}.
+convenience it is also possible to access arbitrary (custom) attributes through
+\option{(assq-ref span-annotation '<attr-name>)}.
 
 ### Basic Styling Function / Handling Style Types
 
-The music function is passed a music expression, but as we have seen \cmd{tagSpan}
-can be applied in various ways -- requiring different approaches to applying the
-styling. If you know the span is only going to be applied in one way (e.g.
-acting upon sequential music) you can ignore the difference, but general-purpose
-functions must discern and act accordingly. This can cleanly be inspected with
-the implementation of `style-default` in the span module file:
+The music function is passed a music expression, but as we have seen
+\cmd{tagSpan} can be applied in various ways -- requiring different approaches
+to applying the styling. If you know the span is only going to be applied in one
+way (e.g. acting upon sequential music) you can ignore the difference, but
+general-purpose functions must discern and act accordingly. This can cleanly be
+inspected with the implementation of `style-default` in the span module file:
 
 ```lilypond
 #(define style-default
@@ -528,10 +582,10 @@ The span class is available as `span-class`, which is used to retrieve the
 class's defined color with \option{getSpanColor} (or the fallback default
 color).
 
-`style-type` denotes the way \cmd{tagSpan} is applied to the music and can take one
-out of the values `wrap`, `tweak` and `once`, and we organize the choice with a
-`case` expression. In general our function has to act differently depending on
-the application type.
+`style-type` denotes the way \cmd{tagSpan} is applied to the music and can take
+one out of the values `wrap`, `tweak` and `once`, and we organize the choice
+with a `case` expression. In general our function has to act differently
+depending on the application type.
 
 \ollMargin{wrap}
 
@@ -587,6 +641,7 @@ directly, but a) one may prefer this type of encoding, b) this is just an
 example after all, and c) this approach is extensible by having the styling
 function respond to custom span attributes.
 
+
 ### Applying Grob-specific Styling Functions
 
 While the styling functions seen so far typically affect *all* or *specific*
@@ -603,6 +658,7 @@ style-types and grob-types.
 This whole topic has to be investigated and then documented. Hopefully we'll
 find solutions to simplify the definition of grob handling functions in a way
 similar to what `wrapSpan` does with overrides.
+
 
 # The `util` Module
 
@@ -624,7 +680,8 @@ it will be understood as a grob property path (like `#'(Staff Clef)`).
 ```
 \lilypondfile{color-grobs.ly}
 
-The most common use of \cmd{colorGrobs} is as a building block for further abstractions, like for example \cmd{colorMusic}.
+The most common use of \cmd{colorGrobs} is as a building block for further
+abstractions, like for example \cmd{colorMusic}.
 
 
 \ollLilyfuncdef{colorMusic}{(grobs) color music}{}
@@ -681,7 +738,7 @@ note itself. However, applying `fancy-span` as a post-event would fail.
 \ollLilyfuncdef{addArticulations}{articulation music}{}
 
 This function takes one `articulation` and applies it to each note or chord in
-`music`. Articulations can be any post-event music expressions that can be
+`music`.  Articulations can be any post-event music expressions that can be
 attached to notes such as articulations (`Script`), dynamics, markup
 (`TextScript`).
 
