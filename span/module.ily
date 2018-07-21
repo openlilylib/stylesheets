@@ -103,7 +103,7 @@
 %   one out of '(wrap tweak once), determining what kind of
 %   modification can be applied to the music.
 %   NOTE: the span-annotation includes further details, especially
-%   the flags is-sequential?, is-rhythmic-event?, and is-post-event?
+%   the variable music-type ('sequential, 'chord, 'post-event, 'rhythmic, 'non-rhythmic)
 %   that can be accessed if necessary for further styling decisions.
 % - item
 %   if present it defines which grobs to affect. Can be either
@@ -483,9 +483,7 @@ ossia =
 
 % with the attributes given
 % in the \with {} block (if any) plus some more calculated ones:
-% - is-sequential?
-% - is-rhythmic-event?
-% - is-post-event?
+% - music-type
 %   to discern between edits/annotations that have to be treated with \tweak
 % - context-id
 %   Set up a reasonable default value if no better data can later
@@ -499,24 +497,27 @@ ossia =
 #(define (make-span-annotation span-class attrs location mus)
    (let*
     ((annot (if attrs (context-mod->props attrs) '()))
-     (is-chord? (memq 'event-chord (ly:music-property mus 'types)))
-     (is-sequential? (and (not (null? (ly:music-property mus 'elements)))
-                          (not is-chord?)))
-     (is-rhythmic-event? (memq 'rhythmic-event (ly:music-property mus 'types)))
-     (is-post-event? (memq 'post-event (ly:music-property mus 'types)))
-     (first-element
-      (if is-sequential? (first (ly:music-property mus 'elements)) mus))
-     (anchor
-      (if (memq 'event-chord (ly:music-property first-element 'types))
-          (first (ly:music-property first-element 'elements))
-          first-element))
-     (style-type
+     (music-type
       (cond
-       (is-sequential? 'wrap)      ;; sequential music expression
-       (is-chord? 'wrap)           ;; single chord
-       (is-rhythmic-event? 'tweak) ;; single music events
-       (is-post-event? 'tweak)     ;; post-event
-       (else 'once)))              ;; non-rhythmic events such as clefs, keys, etc.
+       ((memq 'event-chord (ly:music-property mus 'types)) 'chord)
+       ((not (null? (ly:music-property mus 'elements))) 'sequential)
+       ((memq 'post-event (ly:music-property mus 'types)) 'post-event)
+       ((memq 'rhythmic-event (ly:music-property mus 'types)) 'rhythmic)
+       (else 'non-rhythmic)))
+     (anchor
+      (case music-type
+        ((sequential)
+         (let ((first-element (first (ly:music-property mus 'elements))))
+           (if (memq 'event-chord (ly:music-property first-element 'types))
+               (first (ly:music-property first-element 'elements))
+               first-element)))
+        ((chord) (first (ly:music-property mus 'elements)))
+        (else #f)))
+     (style-type
+      (case music-type
+        ((sequential chord) 'wrap)
+        ((post-event rhythmic) 'tweak)
+        (else 'once)))
      (item (let
             ((i (assq-ref annot 'item)))
             ;; ensure <item> is a symbol, a symbol list or #f
@@ -541,21 +542,16 @@ ossia =
     (assq-set! annot 'item item)
     ;)
     ;; add several manual properties to the given <attrs>
-    (ly:music-set-property! anchor 'span-annotation
+    (ly:music-set-property! (or anchor mus) 'span-annotation
       (validate-annotation
        (append annot
-         `((is-chord? . ,is-chord?)
-           (is-sequential? . ,is-sequential?)
-           (is-post-event? . ,is-post-event?)
-           (is-rhythmic-event? . ,is-rhythmic-event?)
+         `((music-type . ,music-type)
            (style-type . ,style-type)
            (span-class . ,span-class)
            (location . ,location)
            (context-id . ,context-id)))))
-    (if is-sequential?
-        ;; set the 'anchor property for later retrieval
-        (ly:music-set-property! mus 'anchor anchor))
-    anchor))
+    (if anchor (ly:music-set-property! mus 'anchor anchor))
+    (or anchor mus)))
 
 % If the span-annotation has an ann-type attribute
 % we attach the annotation as 'input-annotation to the grob.
