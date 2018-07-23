@@ -168,30 +168,9 @@ for \\once \\override: ~a" types))))
       ((anchor (get-anchor music))
        (span-annotation (ly:music-property anchor 'span-annotation))
        (span-class (assq-ref span-annotation 'span-class))
+       (item (assq-ref span-annotation 'item))
        (style-type (assq-ref span-annotation 'style-type))
-       (location (assq-ref span-annotation 'location))
-       ;; Process the 'item property to be compatible,
-       ;; the different style-types require different ways
-       ;; the
-       (item
-        (let ((orig-item (assq-ref span-annotation 'item)))
-          (case style-type
-            ((once)
-             (cond
-              ((list? orig-item) orig-item)
-              ((symbol? orig-item) (list orig-item))
-              (else (infer-item location music))))
-            ((wrap) orig-item)
-            ((tweak)
-             (if (list? orig-item)
-                 (begin
-                  (ly:input-warning
-                   location
-                   "Item for a \\tweak modification must not be a symbol-list: ~a.
-Using only last element from that list."
-                   orig-item)
-                  (last orig-item))
-                 orig-item))))))
+       (location (assq-ref span-annotation 'location)))
       ;; insert (unquoted) user generated code
       ;; code must return the processed music expression
       (let*
@@ -494,40 +473,69 @@ ossia =
 %   is simply stored in the annotation
 % - location
 %   is also stored in the annotation.
-#(define (make-span-annotation span-class attrs location mus)
+#(define (make-span-annotation span-class attrs location music)
    (let*
     ((annot (if attrs (context-mod->props attrs) '()))
      (music-type
       (cond
-       ((memq 'event-chord (ly:music-property mus 'types)) 'chord)
-       ((not (null? (ly:music-property mus 'elements))) 'sequential)
-       ((memq 'post-event (ly:music-property mus 'types)) 'post-event)
-       ((memq 'rhythmic-event (ly:music-property mus 'types)) 'rhythmic)
+       ((memq 'event-chord (ly:music-property music 'types)) 'chord)
+       ((not (null? (ly:music-property music 'elements))) 'sequential)
+       ((memq 'post-event (ly:music-property music 'types)) 'post-event)
+       ((memq 'rhythmic-event (ly:music-property music 'types)) 'rhythmic)
        (else 'non-rhythmic)))
      (anchor
       (case music-type
         ((sequential)
-         (let ((first-element (first (ly:music-property mus 'elements))))
+         (let ((first-element (first (ly:music-property music 'elements))))
            (if (memq 'event-chord (ly:music-property first-element 'types))
                (first (ly:music-property first-element 'elements))
                first-element)))
-        ((chord) (first (ly:music-property mus 'elements)))
+        ((chord) (first (ly:music-property music 'elements)))
         (else #f)))
      (style-type
       (case music-type
         ((sequential chord) 'wrap)
         ((post-event rhythmic) 'tweak)
         (else 'once)))
-     (item (let
-            ((i (assq-ref annot 'item)))
-            ;; ensure <item> is a symbol, a symbol list or #f
-            (cond
-             ((string? i) (string->symbol i))
-             ((symbol-list? i) i)
-             ((and (list? i) (every string? i))
-              (map (lambda (s)
-                     (symbol->string s)) i))
-             (else #f))))
+
+     ;; Process the 'item property to be compatible,
+     ;; the different style-types require different ways
+     ;; the
+     (item
+      (let
+       ((orig-item
+         (let
+          ;; First ensure <item> is a symbol, a symbol list or #f
+          ((i (assq-ref annot 'item)))
+          (cond
+           ((string? i) (string->symbol i))
+           ((symbol-list? i) i)
+           ((and (list? i) (every string? i))
+            (map (lambda (s)
+                   (symbol->string s)) i))
+           (else #f)))))
+       ;; Process item type depending on style-type
+       (case style-type
+         ((once)
+          ;; For 'once we need a list (even with one element)
+          (cond
+           ((list? orig-item) orig-item)
+           ((symbol? orig-item) (list orig-item))
+           ;; look up from a list of provided music types
+           (else (infer-item location music))))
+         ((wrap) orig-item)
+         ((tweak)
+          ;; For 'tweak there must not be a list (e.g. Staff.Clef)
+          ;; In that case we try to simply use the last element of the list
+          (if (list? orig-item)
+              (begin
+               (ly:input-warning
+                location
+                "Item for a \\tweak modification must not be a symbol-list: ~a.
+Using only last element from that list."
+                orig-item)
+               (last orig-item))
+              orig-item)))))
      (_input-file (string-split (car (ly:input-file-line-char-column location)) #\/ ))
      ;; fallback context name is built from containing directory and filename
      (context-id
@@ -538,11 +546,14 @@ ossia =
           (string-join (list (last (os-path-cwd-list)) (last _input-file)) ".")
           ;; absolute or longer relative path, take last two elements
           (string-join (list-tail _input-file (- (length _input-file) 2)) "."))))
-    ;(if item
-    (assq-set! annot 'item item)
-    ;)
-    ;; add several manual properties to the given <attrs>
-    (ly:music-set-property! (or anchor mus) 'span-annotation
+    ;; Set or update 'item. Since we don't know whether there is one already set
+    ;; we have to use the double 'set!' invocation.
+    (set! annot (assq-set! annot 'item item))
+    ;; If we have an ann-type string convert it to symbol
+    (let ((ann-type (assq-ref annot 'ann-type)))
+      (if (and ann-type (string? ann-type))
+          (set! annot (assq-set! annot 'ann-type (string->symbol ann-type)))))
+    (ly:music-set-property! (or anchor music) 'span-annotation
       (validate-annotation
        (append annot
          `((music-type . ,music-type)
@@ -550,20 +561,37 @@ ossia =
            (span-class . ,span-class)
            (location . ,location)
            (context-id . ,context-id)))))
-    (if anchor (ly:music-set-property! mus 'anchor anchor))
-    (or anchor mus)))
+    (if anchor (ly:music-set-property! music 'anchor anchor))
+    (or anchor music)))
 
 % If the span-annotation has an ann-type attribute
 % we attach the annotation as 'input-annotation to the grob.
 % In this case we'll also have to make sure ann-type is a symbol.
-#(define (make-input-annotation span-annotation anchor)
+#(define (make-input-annotation span-annotation music anchor)
    (let ((ann-type (assq-ref span-annotation 'ann-type)))
      (if ann-type
          (if (ollModuleLoaded 'scholarly 'annotate)
-             (propertyTweak
-              'input-annotation
-              (assq-set! span-annotation 'ann-type (string->symbol ann-type))
-              anchor)
+             (if (eq? (assq-ref span-annotation 'style-type) 'once)
+                 (begin
+                  (set! music
+                        (make-sequential-music
+                         (append
+                          (list
+                           (once (overrideProperty
+                                  (append
+                                   ;; we know this is a list
+                                   (assq-ref span-annotation 'item)
+                                   '(input-annotation))
+                                  span-annotation)))
+                          (list music))))
+                  (ly:music-set-property! music 'anchor
+                    (second
+                     (ly:music-property music 'elements)))
+                  music)
+                 (propertyTweak
+                  'input-annotation
+                  (assq-set! span-annotation 'ann-type ann-type)
+                  anchor))
              (oll:warn "'~a' annotation present but scholarly.annotate not loaded. Skipping!"
                ann-type)))))
 
@@ -593,6 +621,9 @@ tagSpan =
     (make-balloon music anchor span-annotation)
     (make-music-example music anchor span-annotation)
     (make-ossia music anchor span-annotation)
+    ;; optionally create an input-annotation for scholarly.annotate
+    ;; (note that this attaches to the *grob*, not to the *music*)
+    (set! music (make-input-annotation span-annotation music anchor))
     (if (getOption '(stylesheets span use-styles))
         (begin
          ;; Apply the styling function
@@ -600,7 +631,4 @@ tagSpan =
          (if (getOption '(stylesheets span use-colors))
              ;; Apply coloring
              (set! music ((getSpanFunc 'default) music)))))
-    ;; optionally create an input-annotation for scholarly.annotate
-    ;; (note that this attaches to the *grob*, not to the *music*)
-    (make-input-annotation span-annotation anchor)
     music))
