@@ -613,22 +613,27 @@ Using only last element from that list."
 tagSpan =
 #(define-music-function (span-class attrs music)
    (symbol? (ly:context-mod?) ly:music?)
-   (let*
-    ;; create annotation, determine anchor and attach the annotation to the anchor
-    ((anchor (make-span-annotation span-class attrs (*location*) music))
-     (span-annotation (ly:music-property anchor 'span-annotation)))
-    (make-footnote music anchor span-annotation)
-    (make-balloon music anchor span-annotation)
-    (make-music-example music anchor span-annotation)
-    (make-ossia music anchor span-annotation)
-    ;; optionally create an input-annotation for scholarly.annotate
-    ;; (note that this attaches to the *grob*, not to the *music*)
-    (set! music (make-input-annotation span-annotation music anchor))
-    (if (getOption '(stylesheets span use-styles))
-        (begin
-         ;; Apply the styling function
-         (set! music ((getSpanFunc span-class) music))
-         (if (getOption '(stylesheets span use-colors))
-             ;; Apply coloring
-             (set! music ((getSpanFunc 'default) music)))))
-    music))
+   (if
+    ;; Skip empty sequential music expressions because they'll crash
+    (and (memq 'sequential-music (ly:music-property music 'types))
+         (null? (ly:music-property music 'elements)))
+    #{ #}
+    (let*
+     ;; create annotation, determine anchor and attach the annotation to the anchor
+     ((anchor (make-span-annotation span-class attrs (*location*) music))
+      (span-annotation (ly:music-property anchor 'span-annotation)))
+     (make-footnote music anchor span-annotation)
+     (make-balloon music anchor span-annotation)
+     (make-music-example music anchor span-annotation)
+     (make-ossia music anchor span-annotation)
+     ;; optionally create an input-annotation for scholarly.annotate
+     ;; (note that this attaches to the *grob*, not to the *music*)
+     (set! music (make-input-annotation span-annotation music anchor))
+     (if (getOption '(stylesheets span use-styles))
+         (begin
+          ;; Apply the styling function
+          (set! music ((getSpanFunc span-class) music))
+          (if (getOption '(stylesheets span use-colors))
+              ;; Apply coloring
+              (set! music ((getSpanFunc 'default) music)))))
+     music)))
