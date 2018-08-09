@@ -588,12 +588,15 @@ Using only last element from that list."
                     (second
                      (ly:music-property music 'elements)))
                   music)
-                 (propertyTweak
-                  'input-annotation
-                  (assq-set! span-annotation 'ann-type ann-type)
-                  anchor))
+                 (begin
+                  (propertyTweak
+                   'input-annotation
+                   (assq-set! span-annotation 'ann-type ann-type)
+                   anchor)
+                  music))
              (oll:warn "'~a' annotation present but scholarly.annotate not loaded. Skipping!"
-               ann-type)))))
+               ann-type))
+         music)))
 
 
 % Encode a \tagSpan like a <span class=""> in HTML.
