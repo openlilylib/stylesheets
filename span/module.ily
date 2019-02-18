@@ -129,6 +129,9 @@
       ;; Determine the type of a context-specification music
       (lambda ()
         (cond
+         ;; Check for \bar
+         ((eq? 'whichBar (ly:music-property (ly:music-property music 'element) 'symbol))
+          '(Staff BarLine))
          ;; Check for \clef
          ((let
            ((elements
