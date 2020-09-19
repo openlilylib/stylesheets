@@ -33,3 +33,5 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \loadPackage notation-fonts
+
+\include "internal/stylesheets.ily"
