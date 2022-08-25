@@ -42,8 +42,8 @@ colorGrobs =
     (map
      (lambda (gn)
        (if on
-           #{ \temporary \override #gn #'color = #col #}
-           #{ \revert #gn #'color #}))
+           #{ \temporary \override #gn . color = #col #}
+           #{ \revert #gn . color #}))
      grob-names)))
 
 % Predicate checking for a list that is *not* a color.
